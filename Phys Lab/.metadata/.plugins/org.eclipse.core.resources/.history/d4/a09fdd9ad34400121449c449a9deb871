@@ -1,0 +1,149 @@
+package utils.action;
+
+import java.util.List;
+
+public class QueueAction 
+{
+	private Action[] _queue;
+	private int first;
+	private int last;
+	private boolean firstAction;
+	private int size;
+	
+	public QueueAction(int size)
+	{
+		_queue = new Action[size];
+		last = 0;
+		first = 0;
+		size = 0;
+		firstAction = true;
+	}
+	
+	/**
+	 * @deprecated Untested and volatile
+	 * @param size
+	 * @param initialActions
+	 */
+	public QueueAction(int size, List<Action> initialActions)
+	{
+		_queue = new Action[size];
+		first = 0;
+		last = initialActions.size();
+		if(size < initialActions.size())
+		{
+			//Do not populate the ActionQueue because there isnt enough room.
+			return;
+		}
+		
+		for(int i = 0; i < initialActions.size(); i++)
+		{
+			_queue[i] = initialActions.get(i);
+		}
+	}
+	
+	/**
+	 * Add to the end
+	 * @param action
+	 */
+	public void enqueue(Action action)
+	{
+		if(firstAction)
+		{
+			_queue[last] = action;
+			if(last >= _queue.length)
+			{
+				last = 0;
+			}
+			if(first >= _queue.length)
+			{
+				first = 0;
+			}	
+			firstAction = false;
+		}
+		else
+		{
+			last++;
+			if(last >= _queue.length)
+			{
+				last = 0;
+			}
+			
+			_queue[last] = action;
+			
+			if(first == last)
+			{
+				first++;
+			}
+			if(first >= _queue.length)
+			{
+				first = 0;
+			}	
+		}
+		size++;
+	}
+	
+	/**
+	 * Remove all elements
+	 * @param index
+	 */
+	public void clear()
+	{
+		for(int i = 0; i < _queue.length; i++)
+		{
+			_queue[i] = null;
+		}
+		first = 0;
+		last = 0;
+		size = 0;
+		firstAction = true;
+	}
+	
+	/**
+	 * Gets element at specified index.
+	 * @param index
+	 */
+	public Action get(int index)
+	{
+		int i = index + first;
+		while(i >= _queue.length)
+		{
+			i -= _queue.length;
+		}
+		
+		return _queue[i];
+	}
+	
+	public int size()
+	{
+		return size;
+	}
+	
+	/**
+	 * Gets the front element of the and removes it
+	 */
+	public Action poll()
+	{
+		if(size == 0)
+		{
+			return null;
+		}
+		
+		Action action = _queue[first];
+		_queue[first] = null;
+		first++;
+		if(first >= _queue.length)
+		{
+			first = 0;
+		}
+		size--;
+		return action;
+	}
+	
+	/**
+	 * Check the first element of the queue, but doesnt remove it.
+	 */
+	public Action peek()
+	{
+		return _queue[first];
+	}
+}

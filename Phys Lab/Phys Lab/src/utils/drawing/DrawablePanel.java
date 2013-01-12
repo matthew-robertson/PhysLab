@@ -1,0 +1,110 @@
+package utils.drawing;
+
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+
+import utils.graphing.Graphable;
+import utils.graphing.GraphableObjectContainer;
+import utils.graphing.Point;
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.util.AttributeSet;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+
+public class DrawablePanel extends Panel implements SurfaceHolder.Callback
+{
+    public DrawingThread _thread;
+
+    public DrawablePanel(Context context, AttributeSet attrs, int defStyle) 
+    {
+        super(context, attrs, defStyle);
+    }
+
+    public DrawablePanel(Context context, AttributeSet attrs) 
+    {
+        super(context, attrs);
+    }
+    
+    public DrawablePanel(Context context) 
+    {
+        super(context);
+        getHolder().addCallback(this);
+        _thread = new DrawingThread(getHolder(), this);
+    }
+    
+    public void redraw(Point[] points)
+    {
+    	this.points = points;
+    	invalidate();
+    }
+    
+    Point[] points = new Point[0];
+    
+	public void onDraw(Canvas canvas) 
+	{
+		if(points.length < 2) return;
+
+		canvas.drawColor(Color.BLACK);
+		
+		Paint paint = new Paint();
+		paint.setColor(Color.GREEN);
+		
+		if(points.length > 7)
+		{
+			Paint red = new Paint();
+			red.setColor(Color.RED);
+			
+			Paint pd = new Paint();
+			pd.setColor(Color.BLUE);
+			for(int i = 0; i < 7; i++)
+			{
+				canvas.drawLine((float)points[i].x, (float)points[i].y, (float)points[i+1].x, (float)points[i+1].y, red);
+			}
+			for(int i = 7; i < points.length - 1; i++)
+			{
+				canvas.drawLine((float)points[i].x, (float)points[i].y, (float)points[i+1].x, (float)points[i+1].y, pd);
+
+			}
+			return;
+		}
+		
+		for(int i = 0; i < points.length - 1; i++)
+		{
+			canvas.drawLine((float)points[i].x, (float)points[i].y, (float)points[i+1].x, (float)points[i+1].y, paint);
+		}
+	}
+
+	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) 
+	{
+	}
+
+	public void surfaceCreated(SurfaceHolder holder) 
+	{
+	    _thread.setRunning(true);
+	    _thread.start();
+	}
+	 
+	public void surfaceDestroyed(SurfaceHolder holder) 
+	{
+	    // simply copied from sample application LunarLander:
+	    // we have to tell thread to shut down & wait for it to finish, or else
+	    // it might touch the Surface after we return and explode
+	    boolean retry = true;
+	    _thread.setRunning(false);
+	    while (retry) 
+	    {
+	        try 
+	        {
+	            _thread.join();
+	            retry = false;
+	        } catch (InterruptedException e) 
+	        {
+	            // we will try it again and again...
+	        }
+	    }
+	}
+}

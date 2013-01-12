@@ -1,0 +1,14 @@
+package utils.action;
+
+public class Action 
+{
+	private String description; 
+	private Object associatedObject;
+	
+	public Action(String description)
+	{
+		this.description = description;
+	}
+	
+	
+}

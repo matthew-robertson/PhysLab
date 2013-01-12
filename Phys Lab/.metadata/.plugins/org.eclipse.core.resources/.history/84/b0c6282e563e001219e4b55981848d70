@@ -1,0 +1,53 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 
+    <item android:id="@+id/menu_settings"
+        android:title="@string/open"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText" 
+        android:visible="true" 
+        android:titleCondensed="@string/open" 
+        android:enabled="true"/>
+     -->
+     
+    <!-- Preferences -->
+    <item android:id="@+id/preferences_item"
+        android:title="@string/action_bar_preferences"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText" />
+    
+    <!-- Open Graphs -->
+    <item android:id="@+id/action_bar_graph"
+        android:title="@string/action_bar_graph"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText" 
+        android:visible="true" 
+        android:titleCondensed="@string/action_bar_graph" 
+        android:enabled="true"/>
+    
+    <!-- Undo -->
+    <item android:id="@+id/action_bar_undo"
+        android:title="@string/action_bar_undo"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText" 
+        android:visible="true" 
+        android:titleCondensed="@string/action_bar_graph" 
+        android:enabled="true"/>
+    
+    <!-- Set Scale -->
+    <item android:id="@+id/action_bar_graph"
+        android:title="@string/action_bar_graph"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText" 
+        android:visible="true" 
+        android:titleCondensed="@string/action_bar_graph" 
+        android:enabled="true"/>
+    
+    <!-- Set Origin -->
+    <item android:id="@+id/action_bar_graph"
+        android:title="@string/action_bar_graph"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText" 
+        android:visible="true" 
+        android:titleCondensed="@string/action_bar_graph" 
+        android:enabled="true"/>
+</menu>

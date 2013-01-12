@@ -1,0 +1,55 @@
+package project;
+
+import java.util.List;
+
+import utils.graphing.GraphUtils;
+import utils.graphing.GraphableObjectContainer;
+import utils.graphing.Point;
+
+public class Project
+{
+	private OptionsObject options;
+	public GraphableObjectContainer graphable;
+	
+	public Project()
+	{
+		options = new OptionsObject();
+		graphable = new GraphableObjectContainer();
+	}
+	
+	public Project(OptionsObject options, GraphableObjectContainer graphable)
+	{
+		this.options = options;
+		this.graphable = graphable;
+	}
+	
+	public void updateGraphable()
+	{
+		GraphUtils utils = new GraphUtils();
+		Point[] points = options.getPointsAsArray();
+		graphable = utils.convertRawDataToGraphable(points);
+		System.out.println("Breakpoint");
+	}
+	
+	public GraphableObjectContainer getGraphable()
+	{
+		return graphable;
+	}
+	
+	public Project setGraphable(GraphableObjectContainer graphable)
+	{
+		this.graphable = graphable;
+		return this;
+	}
+	
+	public OptionsObject getOptions()
+	{
+		return options;
+	}	
+	
+	public Project setOptions(OptionsObject options)
+	{
+		this.options = options;
+		return this;
+	}
+}	

@@ -1,0 +1,168 @@
+package project;
+
+import java.util.List;
+
+public class OptionsObject 
+{
+	private List<Point> points;
+	private String videoPath;
+	private String projectSaveDirectory;
+	private double graphScale;
+	private double startingDistance;
+	private double startingTime;
+	private final static String FILEPATH_DEFAULT_SAVE = "FILL THIS IN";
+	
+	public OptionsObject(List<Point> points, String videoPath, String projectSaveDirectory, double graphScale, double startingDistance, double startingTime)
+	{
+		this.points = points;
+		this.videoPath = videoPath;
+		this.projectSaveDirectory = projectSaveDirectory;
+		this.graphScale = graphScale;
+		this.startingDistance = startingDistance;
+		this.startingTime = startingTime;
+	}
+
+	public OptionsObject()
+	{
+		points = new ArrayList<Point>();
+		videoPath = "";
+		projectSaveDirectory = FILEPATH_DEFAULT_SAVE;
+		graphScale = 1.0d;
+		startingDistance = 0.0d;
+		startingTime = 0.0d;
+	}
+	
+	public void clearAllPoints()
+	{
+		points.clear(); //Or make it new again
+	}
+	
+	public void registerPoint(Point point)
+	{
+		points.add(point);
+	}
+	
+	public void clearPoint(int index)
+	{
+		try 
+		{
+			points.remove(index);
+		}
+		catch(Exception E)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+}
+
+
+
+
+public class GraphableObject implements Graphable
+{
+	private Point[] points;
+	private double minValue;
+	private double maxValue;
+	private int graphType;
+
+	public GraphableObject(Point[] points, double minValue, double maxValue, int graphType)
+	{
+		this.points = points;
+		this.minValue = minValue;
+		this.maxValue = maxValue;
+		this.graphType = graphType;
+	}
+	
+	public int getGraphType()
+	{
+		return graphType;
+	}
+	
+	public Point getFirstPoint()
+	{
+		return (points.length > 0) ? points[0] : null;
+	}
+	
+	public Point getLastPoint()
+	{
+		return (points.length > 0) ? points[points.length - 1] : null;
+	}
+	
+	public GraphableObject setGraphType(int i)
+	{
+		this.graphType = i;
+		return this;
+	}
+	
+	public GraphableObject setMinValue(double d)
+	{
+		this.minValue = d;
+		return this;
+	}
+	
+	public GraphableObject setMaxValue(double d)
+	{	
+		this.maxValue = d;
+		return this;
+	}
+	
+	public double getMinValue()
+	{
+		return minValue;
+	}
+	
+	public double getMaxValue()
+	{
+		return maxValue;
+	}
+	
+	public Point[] getPoints()
+	{
+		return points;
+	}
+	
+	public GraphableObject setPoints(Point[] points)
+	{
+		this.points = points;
+		return this;
+	}
+	
+	public GraphableObject changePoint(int index, Point point)
+	{
+		try
+		{
+			this.points.get(index).replace(point);
+		}
+		catch(Exception e) //Invalid index Error
+		{
+			e.printStackTrace();
+			this.points.add(point);
+		}
+	}
+}
+
+//probably not a class, will be addition to something else.
+public class DrawGraphs
+{
+	public GraphableObjectContainer graphable;
+	
+	public boolean updateGraphable(GraphableObjectContainer graphable)
+	{
+		this.graphable = graphable;
+	}
+
+	public void onDraw()
+	{
+		//Axis
+		//Axis Labels (inc scale numbers on x/y
+		//+/- Quadrants
+		//Preference? add straight line connections between scatter point dots.
+		//			  >Lines of best fit? Exponential, Linear, Logarithmic, Power
+		//			  >Equation && r^2 value?
+		//Scatter plot -> Plot points. [Done]
+		//Line graph -> Plot points. 
+				//Just Linear Connection?
+	}
+	
+}

@@ -1,0 +1,121 @@
+package utils.drawing;
+
+import gui.activities.Activity_3;
+import utils.graphing.GraphableObject;
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.util.AttributeSet;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+
+public class Panel extends SurfaceView implements SurfaceHolder.Callback
+{
+    private DrawingThread _thread;
+    //private Paint paint;
+
+    public Panel(Context context, AttributeSet attrs, int defStyle) 
+    {
+        super(context, attrs, defStyle);
+    }
+
+    public Panel(Context context, AttributeSet attrs) 
+    {
+        super(context, attrs);
+    }
+    
+    public Panel(Context context) 
+    {
+        super(context);
+        getHolder().addCallback(this);
+        _thread = new DrawingThread(getHolder(), this);
+  //      paint = new Paint();
+    }
+
+	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) 
+	{
+	}
+
+	public void surfaceCreated(SurfaceHolder holder) 
+	{
+	    _thread.setRunning(true);
+	    _thread.start();
+	}
+	 
+	public void surfaceDestroyed(SurfaceHolder holder) 
+	{
+	    // simply copied from sample application LunarLander:
+	    // we have to tell thread to shut down & wait for it to finish, or else
+	    // it might touch the Surface after we return and explode
+	    boolean retry = true;
+	    _thread.setRunning(false);
+	    while (retry) 
+	    {
+	        try 
+	        {
+	            _thread.join();
+	            retry = false;
+	        } catch (InterruptedException e) 
+	        {
+	            // we will try it again and again...
+	        }
+	    }
+	}
+	
+	/*
+	public void drawLine(int x, int y, int w, int h)
+	{
+//		canvas.drawLine(x, y, w, h, paint);
+	}
+	
+	public void drawCircle()
+	{
+		
+	}
+	
+	public void setPaint(Paint paint)
+	{
+		
+	}
+	
+	public void resetPaint()
+	{
+		
+	}
+	*/
+	
+	public void updateGraphableObject(GraphableObject graphable)
+	{
+		this.graphableObject = graphable;
+	}
+	
+	private GraphableObject graphableObject;
+	private Activity_3 parentActivity;
+	
+	public void passActivity_3(Activity_3 act)
+	{
+		this.parentActivity = act;
+	}
+	
+	private final static int TOP_PADDING = 60;
+	
+	public void onDraw(Canvas canvas) 
+	{
+		canvas.drawColor(Color.BLACK);
+		Paint paint = new Paint();
+		paint.setColor(Color.WHITE);
+		
+		
+		
+		canvas.drawLine(20, TOP_PADDING + 20, 20, parentActivity.getHeight() - 20, paint);
+		paint.setColor(Color.GREEN);
+		canvas.drawLine(parentActivity.getHeight() - 80, 20, parentActivity.getWidth() - 80, parentActivity.getHeight() - 20 , paint);
+		canvas.drawLine(parentActivity.getHeight() - 20, 20, parentActivity.getWidth() - 20, parentActivity.getHeight() - 20 , paint);
+		
+        //Bitmap _scratch = BitmapFactory.decodeResource(getResources(), R.drawable.icon);
+        //canvas.drawColor(Color.BLUE);
+        //canvas.drawLine(10, 10, 100, 100, new Paint());
+        //canvas.drawBitmap(_scratch, 10, 10, null);
+    }
+}

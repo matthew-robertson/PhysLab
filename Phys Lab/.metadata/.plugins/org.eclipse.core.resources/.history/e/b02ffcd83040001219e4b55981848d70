@@ -1,0 +1,125 @@
+package utils.graphing;
+
+public class GraphUtils
+{
+	public GraphableObjectContainer convertRawDataToGraphable(Point[] points)
+	{
+		GraphableObjectContainer container = new GraphableObjectContainer();
+		container.setPositionTimeGraph(convertDataToPositionTime(points));
+		container.setVelocityTimeGraph(convertDataToVelocityTime(points));
+		container.setAccelerationTimeGraph(convertDataToAccelerationTime(container.getVelocityTimeGraph().getPoints()));
+		return container;
+	}
+	
+	private GraphableObject convertDataToPositionTime(Point[] points)
+	{
+		GraphableObject graphable = new GraphableObject();
+		graphable.setPoints(sortPointsArrayByTime(points)); //<<Prone to reference errors
+		graphable.setGraphType(Graphable.GRAPH_TYPE_POSITION_TIME);
+		try{
+			graphable.setMinValue(graphable.getFirstPoint().getY());
+		}catch(Exception e){
+			graphable.setMinValue(0);
+		}
+		try{
+			graphable.setMaxValue(graphable.getLastPoint().getY());
+		}catch(Exception e){
+			graphable.setMaxValue(0);
+		}
+		
+		return graphable;
+	}
+	
+	private GraphableObject convertDataToVelocityTime(Point[] points)
+	{
+		GraphableObject graphable = new GraphableObject();
+		points = convertPointsToVT(points); //<<Prone to reference errors
+		graphable.setPoints(sortPointsArrayByTime(points));
+		graphable.setGraphType(Graphable.GRAPH_TYPE_VELOCITY_TIME);
+		graphable.setMinValue(graphable.getFirstPoint().getY());
+		graphable.setMaxValue(graphable.getLastPoint().getY());
+		return graphable;
+	}
+		
+	private GraphableObject convertDataToAccelerationTime(Point[] points)
+	{
+		GraphableObject graphable = new GraphableObject();
+		points = convertPointsToAT(points); //<<Prone to reference errors.
+		graphable.setPoints(sortPointsArrayByTime(points));
+		graphable.setGraphType(Graphable.GRAPH_TYPE_ACCELERATION_TIME);
+		graphable.setMinValue(graphable.getFirstPoint().getY());
+		graphable.setMaxValue(graphable.getLastPoint().getY());
+		return graphable;
+	}	
+	
+	private Point[] convertPointsToVT(Point[] points)
+	{
+		//http://www.physicssource.ca/pgs/2001_kin_emath_02.html
+		
+		/*
+			rough formula:
+			change v = change d / change t = (d2-d1) / (t2-t1)
+		*/
+		Point[] newPoints = new Point[points.length - 1];
+		
+		for(int i = 0; i < points.length - 1; i++)
+		{
+			Point temp = new Point();
+			temp.setX(points[i].getX());
+			temp.setY((float)(points[i+1].getY() - points[i].getY()) / (float)(points[i+1].getX() - points[i].getX()));
+			newPoints[i] = temp;
+		}
+			
+		return newPoints;
+	}
+	
+	private Point[] convertPointsToAT(Point[] points)
+	{
+		/*
+			rough formula:
+			change a = change v / change t = (v2-v1) / (t2-t1)
+		*/
+		Point[] newPoints = new Point[points.length - 1];
+		
+		for(int i = 0; i < points.length - 1; i++)
+		{
+			Point temp = new Point();
+			temp.setX(points[i].getX());
+			temp.setY((float)(points[i+1].getY() - points[i].getY()) / (float)(points[i+1].getX() - points[i].getX()));
+			newPoints[i] = temp;
+		}
+		
+		return points;
+	}
+		
+	private Point[] sortPointsArrayByTime(Point[] points)
+	{
+		shellsort(points);
+		return points;
+	}
+	
+    private void shellsort(Point[] a )
+    {
+        for( int gap = a.length / 2; gap > 0; gap = gap == 2 ? 1 : (int) ( gap / 2.2 ) )
+		{
+            for(int i = gap; i < a.length; i++)
+            {
+                Point tmp = a[i];
+                int j = i;
+
+                for( ; j >= gap && tmp.compareTo(a[j - gap]) < 0; j -= gap)
+				{
+                    a[j] = a[j - gap];
+                }
+				a[j] = tmp;
+			}
+		}
+        
+        System.out.println("1");
+    } 
+	
+	/**
+	//http://stackoverflow.com/questions/4833423/shell-sort-java-example
+	 * Point.java needs a compareTo(Point) method for shell sort
+	 */ 
+}

@@ -1,0 +1,127 @@
+package utils.graphing;
+
+public class ScaleBounds
+{	
+	public float left;
+	public float right;
+	public float top;
+	public float bottom;	
+	public float leftPivotPoint;
+	public float rightPivotPoint;	
+	public float rotationAngle;
+	
+	public ScaleBounds()
+	{
+		left = 0;
+		right = 0;
+		top = 0;
+		bottom = 0;
+		leftPivotPoint = 0;
+		rightPivotPoint = 0;
+		rotationAngle = 0.0f;
+	}
+
+	/**
+	 * Does not set other variables
+	 * @param l
+	 * @param r
+	 * @param t
+	 * @param b
+	 */
+	public ScaleBounds(float l, float r, float t, float b)
+	{
+		left = l;
+		right = r;
+		top = t;
+		bottom = b;
+		leftPivotPoint = 0;
+		rightPivotPoint = 0;
+		rotationAngle = 0.0f;
+	}
+	
+	public ScaleBounds(float l, float r, float t, float b, float lPP, float rPP)
+	{
+		left = l;
+		right = r;
+		top = t;
+		bottom = b;
+		leftPivotPoint = lPP;
+		rightPivotPoint = rPP;
+		rotationAngle = 0;
+	}
+	
+	public ScaleBounds(float l, float r, float t, float b, float lPP, float rPP, float rA)
+	{
+		left = l;
+		right = r;
+		top = t;
+		bottom = b;
+		leftPivotPoint = lPP;
+		rightPivotPoint = rPP;
+		rotationAngle = rA;
+	}
+	
+	/**
+	 * Does not auto-set other variables
+	 * @param l
+	 * @param r
+	 * @param t
+	 * @param b
+	 */
+	public void setBounds(float l, float r, float t, float b)
+	{
+		left = l;
+		right = r;
+		top = t;
+		bottom = b;
+	}
+	
+	public void setBounds(float l, float r, float t, float b, float lPP, float rPP)
+	{
+		left = l;
+		right = r;
+		top = t;
+		bottom = b;
+		leftPivotPoint = lPP;
+		rightPivotPoint = rPP;
+		rotationAngle = 0.0f;
+	}
+	
+	public void setBounds(float l, float r, float t, float b, float lPP, float rPP, float rA)
+	{
+		left = l;
+		right = r;
+		top = t;
+		bottom = b;
+		leftPivotPoint = lPP;
+		rightPivotPoint = rPP;
+		rotationAngle = rA;
+	}
+	
+	public boolean contains(float x, float y)
+	{
+		//Counter rotate
+		
+		
+		if(x > this.left && x < this.right && y > this.top && y < this.bottom)
+		{
+			return true;
+		}
+		return false;
+	}
+	
+	public void recalculateBoundsByPivotPointss()
+	{
+		
+	}
+	
+	public boolean isInLeftClickBounds()
+	{
+		return true;
+	}
+	
+	public boolean isInRightClickBounds()
+	{
+		return true;
+	}
+}

@@ -1,0 +1,85 @@
+package utils.graphing;
+
+public class GraphableObject implements Graphable
+{
+	private Point[] points;
+	private double minValue;
+	private double maxValue;
+	private int graphType;
+
+	public GraphableObject(Point[] points, double minValue, double maxValue, int graphType)
+	{
+		this.points = points;
+		this.minValue = minValue;
+		this.maxValue = maxValue;
+		this.graphType = graphType;
+	}
+	
+	public int getGraphType()
+	{
+		return graphType;
+	}
+	
+	public Point getFirstPoint()
+	{
+		return (points.length > 0) ? points[0] : null;
+	}
+	
+	public Point getLastPoint()
+	{
+		return (points.length > 0) ? points[points.length - 1] : null;
+	}
+	
+	public GraphableObject setGraphType(int i)
+	{
+		this.graphType = i;
+		return this;
+	}
+	
+	public GraphableObject setMinValue(double d)
+	{
+		this.minValue = d;
+		return this;
+	}
+	
+	public GraphableObject setMaxValue(double d)
+	{	
+		this.maxValue = d;
+		return this;
+	}
+	
+	public double getMinValue()
+	{
+		return minValue;
+	}
+	
+	public double getMaxValue()
+	{
+		return maxValue;
+	}
+	
+	public Point[] getPoints()
+	{
+		return points;
+	}
+	
+	public GraphableObject setPoints(Point[] points)
+	{
+		this.points = points;
+		return this;
+	}
+	
+	public GraphableObject changePoint(int index, Point point)
+	{
+		try
+		{
+			this.points[index] = point;
+		}
+		catch(Exception e) //Invalid index Error
+		{
+			e.printStackTrace();
+		}
+		
+		return this;
+	}
+}

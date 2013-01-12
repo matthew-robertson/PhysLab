@@ -1,0 +1,10 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+	<!-- Close Preferences -->
+    <item android:id="@+id/action_bar_close_preferences"
+        android:title="@string/action_bar_close_preferences"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText" 
+        android:visible="true" 
+        android:titleCondensed="@string/action_bar_close_preferences" 
+        android:enabled="true"/>
+</menu>

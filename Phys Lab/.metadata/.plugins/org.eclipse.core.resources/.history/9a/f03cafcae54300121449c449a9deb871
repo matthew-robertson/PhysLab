@@ -1,0 +1,49 @@
+package utils.action;
+
+import java.util.List;
+
+public class ActionQueue 
+{
+	private Action[] _queue;
+	
+	public ActionQueue(int size)
+	{
+		_queue = new Action[size];
+	}
+	
+	public ActionQueue(int size, List<Action> initialActions)
+	{
+		_queue = new Action[size];
+		
+		if(size < initialActions.size())
+		{
+			//Do not populate the ActionQueue because there isnt enough room.
+			return;
+		}
+	}
+	
+	public void enqueue(Action action)
+	{
+		
+	}
+	
+	public void clear(int index)
+	{
+		
+	}
+	
+	public void set()
+	{
+		
+	}
+	
+	public void get()
+	{
+		
+	}
+	
+	public void poll()
+	{
+		
+	}
+}

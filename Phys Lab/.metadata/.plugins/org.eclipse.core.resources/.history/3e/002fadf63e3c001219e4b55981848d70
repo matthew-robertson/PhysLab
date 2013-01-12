@@ -1,0 +1,96 @@
+package project;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import utils.graphing.Point;
+
+public class OptionsObject 
+{
+	private List<Point> points;
+	private String videoPath;
+	private String projectSaveDirectory;
+	private double graphScale;
+	private double startingDistance;
+	private double startingTime;
+	private final static String FILEPATH_DEFAULT_SAVE = "FILL THIS IN";
+	
+	public OptionsObject(List<Point> points, String videoPath, String projectSaveDirectory, double graphScale, double startingDistance, double startingTime)
+	{
+		this.points = points;
+		this.videoPath = videoPath;
+		this.projectSaveDirectory = projectSaveDirectory;
+		this.graphScale = graphScale;
+		this.startingDistance = startingDistance;
+		this.startingTime = startingTime;
+	}
+
+	public OptionsObject()
+	{
+		points = new ArrayList<Point>();
+		videoPath = "";
+		projectSaveDirectory = FILEPATH_DEFAULT_SAVE;
+		graphScale = 1.0d;
+		startingDistance = 0.0d;
+		startingTime = 0.0d;
+	}
+	
+	public void clearAllPoints()
+	{
+		points.clear(); //Or make it new again
+	}
+	
+	public void registerPoint(Point point)
+	{
+		points.add(point);
+	}
+	
+	public void clearPoint(int index)
+	{
+		try 
+		{
+			points.remove(index);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public List<Point> getPoints()
+	{
+		return points;
+	}
+}
+
+
+
+
+
+/*
+//probably not a class, will be addition to something else.
+public class DrawGraphs
+{
+	public GraphableObjectContainer graphable;
+	
+	public boolean updateGraphable(GraphableObjectContainer graphable)
+	{
+		this.graphable = graphable;
+	}
+
+	public void onDraw()
+	{
+		//Axis
+		//Axis Labels (inc scale numbers on x/y
+		//+/- Quadrants
+		//Preference? add straight line connections between scatter point dots.
+		//			  >Lines of best fit? Exponential, Linear, Logarithmic, Power
+		//			  >Equation && r^2 value?
+		//Scatter plot -> Plot points. [Done]
+		//Line graph -> Plot points. 
+				//Just Linear Connection?
+	}
+	
+}
+
+*/

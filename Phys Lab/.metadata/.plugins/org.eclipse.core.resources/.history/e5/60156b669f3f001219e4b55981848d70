@@ -1,0 +1,110 @@
+package gui.activities;
+
+import utils.preferences.SettingsFragment;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.DialogFragment;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+
+import com.example.firstapp.R;
+
+public class PreferencesActivity extends Activity 
+		implements NoticeDialogFragment.NoticeDialogListener 
+{
+	private SettingsFragment settingsFragment;
+	
+	public PreferencesActivity()
+	{
+		this.activity = "main_activity";
+	}
+	
+	public PreferencesActivity(String activity)
+	{
+		this.activity = activity;
+	}
+	
+	public void setActivity(String str)
+	{
+		this.activity = str;
+	}
+	
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		// Display the fragment as the main content.
+		
+		settingsFragment = new SettingsFragment(this);
+		
+		Bundle bundle = this.getIntent().getExtras();
+		this.activity = bundle.getString(MainActivity.MAIN_ACTIVITY);
+		  
+		//THIS is the error
+		
+		getFragmentManager().beginTransaction().replace(android.R.id.content, settingsFragment).commit();	
+				
+	}
+	
+	public void swapBack()
+    {
+    	if(activity.equals(MainActivity.NAME_ACTIVITY_MAIN))
+    	{
+    		Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+        }
+    	else if(activity.equals(Activity_3.NAME_ACTIVITY_GRAPHING))
+    	{
+    		Intent intent = new Intent(this, Activity_3.class);
+            startActivity(intent);
+        }
+    }
+
+	public boolean onOptionsItemSelected(MenuItem item) 
+    {
+        // Handle item selection
+        switch (item.getItemId()) {
+            //case R.id.preference_clear_all_data:
+            
+            	//return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+	
+	public void clearAllData(View view)
+	{
+		// 1. Instantiate an AlertDialog.Builder with its constructor
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+		// 2. Chain together various setter methods to set the dialog characteristics
+		builder.setMessage("Are you sure you want to delete all the data points?")
+		       .setTitle("Are you sure?");
+
+		// 3. Get the AlertDialog from create()
+		AlertDialog dialog = builder.create();
+	}
+	
+	private String activity;
+	
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		getMenuInflater().inflate(R.menu.activity_preferences, menu);
+		return true;
+	}
+
+	@Override
+	public void onDialogPositiveClick(DialogFragment dialog) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onDialogNegativeClick(DialogFragment dialog) {
+		// TODO Auto-generated method stub
+		
+	}
+
+}

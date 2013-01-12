@@ -1,0 +1,15 @@
+package utils.action;
+
+public class ActionAdd extends Action
+{
+	public ActionAdd(String description) 
+	{
+		super(description);
+	}
+	
+	public ActionAdd()
+	{
+		super();
+		this.description = EnumAction.ACTION_ADD_POINT.actionValue;
+	}
+}

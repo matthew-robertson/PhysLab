@@ -1,0 +1,99 @@
+package utils.preferences;
+
+import gui.activities.VideoActivity;
+import android.R;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.content.DialogInterface;
+import android.os.Bundle;
+
+public class ChooseProjectDialog extends DialogFragment
+{
+	private String[] listArgs;
+	private int internalFinalIndex;
+    
+    /* The activity that creates an instance of this dialog fragment must
+     * implement this interface in order to receive event callbacks.
+     * Each method passes the DialogFragment in case the host needs to query it. */
+    public interface ChooseProjectDialogListener {
+        public void openProject(DialogFragment dialog, String filePath, boolean storedInternally);        
+    }
+    
+    public ChooseProjectDialog()
+    {
+    	this.listArgs = new String[0];
+    	this.internalFinalIndex = 0;
+    }
+    
+    public ChooseProjectDialog(String[] a_str, int intIndex)
+    {
+    	this.listArgs = a_str;
+    	this.internalFinalIndex = intIndex;
+    }
+    
+    
+    // Use this instance of the interface to deliver action events
+    ChooseProjectDialogListener mListener;
+    
+    // Override the Fragment.onAttach() method to instantiate the NoticeDialogListener
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        // Verify that the host activity implements the callback interface
+        try {
+            // Instantiate the NoticeDialogListener so we can send events to the host
+            mListener = (ChooseProjectDialogListener) activity;
+        } catch (ClassCastException e) {
+            // The activity doesn't implement the interface, throw exception
+            throw new ClassCastException(activity.toString()
+                    + " must implement NoticeDialogListener");
+        }
+    }
+    
+    @Override
+    public Dialog onCreateDialog(Bundle savedInstanceState) 
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setTitle("Which project would you like to open?")
+               .setItems(listArgs, new DialogInterface.OnClickListener() 
+               {
+                   public void onClick(DialogInterface dialog, int which) 
+                   {
+                	   // The 'which' argument contains the index position of the selected item
+                	   mListener.openProject(ChooseProjectDialog.this, listArgs[which], (which <= internalFinalIndex) ? true : false);
+                   }
+               })
+               .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() 
+               {
+            	   public void onClick(DialogInterface dialog, int id) 
+            	   {
+                   }
+               });
+       	
+        return builder.create();
+    }
+    
+    /*
+    @Override
+    public Dialog onCreateDialog(Bundle savedInstanceState) {
+        // Build the dialog and set up the button click handlers
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setMessage("Are you sure you want to clear all data?")
+               .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                   public void onClick(DialogInterface dialog, int id) {
+                       // Send the positive button event back to the host activity
+                       mListener.onDialogPositiveClick(ChooseProjectDialog.this, EnumDialogOptions.DIALOG_DELETE_POINTS_CONFIRM.value);
+                   }
+               })
+               .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                   public void onClick(DialogInterface dialog, int id) {
+                       // Send the negative button event back to the host activity
+                       mListener.onDialogNegativeClick(ChooseProjectDialog.this, EnumDialogOptions.DIALOG_DELETE_POINTS_DENY.value);
+                   }
+               });
+        return builder.create();
+    }
+    */
+}

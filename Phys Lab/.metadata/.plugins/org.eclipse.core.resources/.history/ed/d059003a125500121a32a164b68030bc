@@ -1,0 +1,168 @@
+package utils.graphing;
+
+
+public class Boundary 
+{
+    private final Point[] points; // Points making up the boundary
+    
+    ClickBoundary leftBoundary;
+    ClickBoundary rightBoundary;
+    
+    public Boundary()
+    {
+    	points = new Point[4];
+    }
+    
+    public Boundary(int size)
+    {
+    	points = new Point[size];
+    }
+    
+    /**
+     * Assumes the rectangle starts out being "flat" and has 4 points.
+     * Also assumes points are given in a clockwise order around the rectangle.
+     * @param points
+     */
+    public Boundary(Point[] points)
+    {
+    	this.points = points;
+    	calculateClickZones();
+    }
+
+    public void calculateClickZones()
+    {
+    	double width = points[1].getX() - points[0].getX();
+    	double height = points[3].getY() - points[0].getY();
+    	
+    	if(width < 50)
+    	{
+    		width = width / 2;
+    	}
+    	else 
+    	{
+    		width = (width * 0.3 < 25) ? 25: width * 0.3;
+    	}
+    	
+    	double left_left = points[0].getX();
+		double top_left = points[0].getY();
+		double right_left = left_left + width;
+		double bottom_left = top_left + height;
+	
+    	leftBoundary = new ClickBoundary(new Point[] {
+			 	new Point(left_left, top_left),
+			 	new Point(right_left, top_left),
+			 	new Point(right_left, bottom_left),
+			 	new Point(left_left, bottom_left) 
+			 });
+    
+    	double right_right = points[2].getX();
+		double bottom_right = points[2].getY();
+		double left_right = right_right - width;
+		double top_right = right_right - height;
+	
+    	rightBoundary = new ClickBoundary(new Point[] {
+			 	new Point(left_right, top_right),
+			 	new Point(right_right, top_right),
+			 	new Point(right_right, bottom_right),
+			 	new Point(left_right, bottom_right) 
+			 });
+    }
+    		
+    
+    /**
+     * Return true if the given point is contained inside the boundary.
+     * See: http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+     * @param test The point to check
+     * @return true if the point is inside the boundary, false otherwise
+     *
+     */
+    public boolean contains(Point test) 
+    {
+    	int i;
+    	int j;
+    	boolean result = false;
+    	for (i = 0, j = points.length - 1; i < points.length; j = i++) 
+    	{
+    		if ((points[i].y > test.y) != (points[j].y > test.y) &&
+    			(test.x < (points[j].x - points[i].x) * (test.y - points[i].y) / (points[j].y-points[i].y) + points[i].x)) {
+    			result = !result;
+    		}
+    	}
+    	return result;
+    }
+    
+    public boolean contains(double x, double y) 
+    {
+    	int i;
+    	int j;
+    	boolean result = false;
+    	for (i = 0, j = points.length - 1; i < points.length; j = i++) 
+    	{
+    		if ((points[i].y > y) != (points[j].y > y) &&
+    			(x < (points[j].x - points[i].x) * (y - points[i].y) / (points[j].y-points[i].y) + points[i].x)) {
+    			result = !result;
+    		}
+    	}
+    	return result;
+    }
+    
+    public Point rotate_point(float cx, float cy, float angle, Point p)
+	{
+	  double s = Math.sin(angle);
+	  double c = Math.cos(angle);
+	
+	  // translate point back to origin:
+	  p.x -= cx;
+	  p.y -= cy;
+	
+	  // rotate point
+	  double xnew = p.x * c - p.y * s;
+	  double ynew = p.x * s + p.y * c;
+	
+	  // translate point back:
+	  p.x = xnew + cx;
+	  p.y = ynew + cy;
+	  
+	  return p;
+	}
+    
+    public void updateLength(double length)
+    {
+    	
+    }
+    
+    public void rotateOnRightCenter(float angle)
+    {
+    	
+    }
+    
+    public void rotateOnLeftCenter(float angle)
+    {
+    	
+    }
+    
+    public boolean isInLeftBounds(float x, float y)
+    {
+    	return leftBoundary.contains(x, y);
+    }
+    
+    public boolean isInRightBounds(float x, float y)
+    {
+    	return rightBoundary.contains(x, y);
+    }
+    
+    public Point centerOfLeftLine()
+	{
+		return new Point((points[0].getX() + points[3].getX()) / 2, (points[0].getY() + points[3].getY()) / 2);
+	}
+	
+    public Point centerOfRightLine()
+	{
+		return new Point((points[1].getX() + points[2].getX()) / 2, (points[1].getY() + points[2].getY()) / 2);
+	}
+    
+    public void rotate(float angle)
+    {
+    	
+    }
+}

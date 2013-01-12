@@ -1,0 +1,186 @@
+package gui.activities;
+
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
+import project.Project;
+import utils.graphing.Point;
+import android.content.Context;
+import android.os.Environment;
+
+public class FileUtils 
+{
+	/**
+	 * Checks if external storage is available for read and write 
+	 */
+	public boolean isExternalStorageWritable() 
+	{
+	    String state = Environment.getExternalStorageState();
+	    if (Environment.MEDIA_MOUNTED.equals(state))
+	    {
+	        return true;
+	    }
+	    return false;
+	}
+	
+	public String save(Context context, boolean saveInternally, Project project)
+	{
+		try
+		{
+			boolean externalAvailable = isExternalStorageWritable();
+			
+			if(!saveInternally && !externalAvailable)
+			{
+				return "ERROR: External Disk not writable";
+			}
+			else if(!saveInternally && externalAvailable)
+			{
+				saveFileExternally(context, project);
+			}
+			else if(saveInternally)
+			{
+				saveFileInternally(context, project);
+			}
+		}
+		catch(Exception e) //Something's gone wrong. return appropriate error message.
+		{
+			return "ERROR: " + e.toString();
+		}
+		return "ERROR: Unknown write error";
+	}
+	
+	private void saveFileInternally(Context context, Project project) 
+			throws IOException
+	{
+		String fileName = context.getFilesDir() + "/" + project.projectName + ".physdat";
+
+		FileOutputStream fileWriter = context.openFileOutput(fileName, Context.MODE_PRIVATE);
+		ObjectOutputStream os = new ObjectOutputStream(fileWriter);
+		os.writeObject(project);
+		fileWriter.flush();
+		os.flush();
+		os.close();
+		
+		fileWriter.close();   
+		
+	}
+	
+	private void saveFileExternally(Context context, Project project) 
+			throws FileNotFoundException, IOException
+	{
+		String fileName = context.getExternalFilesDir(null) + "/" + project.projectName + ".physdat";
+
+		FileOutputStream fileWriter = context.openFileOutput(fileName, Context.MODE_PRIVATE);
+		ObjectOutputStream os = new ObjectOutputStream(fileWriter);
+		os.writeObject(project);
+		os.close();
+		
+		fileWriter.close();   
+		
+	}
+
+	//Probably the wrong place to put this
+	private Object loadFile(Context context, boolean internallyStored, String projectName) 
+			throws IOException, ClassNotFoundException
+	{
+		if(internallyStored)
+		{
+			String fileName = context.getFilesDir() + "/" + projectName + ".physdat";
+			
+			FileInputStream fis = context.openFileInput(fileName);
+			ObjectInputStream is = new ObjectInputStream(fis);
+			Project proj = (Project)is.readObject(); //Load the object
+		    is.close();
+			return proj;
+		}
+		else
+		{
+			String fileName = context.getExternalFilesDir(null) + "/" + projectName + ".physdat";
+			FileInputStream fis = context.openFileInput(fileName);
+			ObjectInputStream is = new ObjectInputStream(fis);
+			Project proj = (Project)is.readObject(); //Load the object
+		    is.close();
+			return proj;
+		}
+	}
+	
+	public Project load(Context context, String path, boolean internallyStored)
+	{
+		try 
+		{
+			Project project = (Project)loadFile(context, internallyStored, path);
+			return project;
+		}
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
+		catch (ClassNotFoundException e) 
+		{
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public String exportDataAsTxt(Context context, Project project)
+	{
+		try
+		{
+			BufferedWriter writer = null;
+			
+			String returnMessage = "Success";
+			
+			if(isExternalStorageWritable())
+			{
+				File file = new File(Environment.getExternalStorageDirectory() + "/Phys Lab Exports/" + project.projectName +"_export.txt");
+				writer = new BufferedWriter(new FileWriter(file));
+				returnMessage += " writing to external storage";
+			}
+			else
+			{
+				File file = new File(context.getFilesDir() + "/Phys Lab Exports");
+				writer = new BufferedWriter(new FileWriter(file));
+				returnMessage += " writing to internal storage";
+			}			
+			
+			writer.write("X Values \n \n");
+			Point[] points = project.options.getPointsAsArray();
+			
+			for(int i = 0; i < points.length; i++)
+			{
+				writer.write(points[i].x + "\n");
+			}
+			writer.write("\n Y Values \n \n");
+			
+			for(int i = 0; i < points.length; i++)
+			{
+				writer.write(points[i].y + "\n");
+			}
+			writer.write("\n Time Values \n \n");
+			
+			for(int i = 0; i < points.length; i++)
+			{
+				writer.write(points[i].timeStamp + "\n");
+			}
+			
+			return returnMessage;
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+			return e.toString();
+		}
+	}
+	
+}

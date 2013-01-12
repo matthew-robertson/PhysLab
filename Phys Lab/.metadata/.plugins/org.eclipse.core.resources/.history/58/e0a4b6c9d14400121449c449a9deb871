@@ -1,0 +1,23 @@
+package utils.action;
+
+public class Action 
+{
+	private String description; 
+	private Object associatedObject;
+	
+	public Action(String description)
+	{
+		this.description = description;
+		this.associatedObject = null;
+	}
+	
+	public String getDescription()
+	{
+		return description;
+	}
+	
+	public Object getAssociatedObject()
+	{
+		return associatedObject;
+	}
+}

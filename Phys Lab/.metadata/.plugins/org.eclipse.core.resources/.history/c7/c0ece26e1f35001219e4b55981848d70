@@ -1,0 +1,76 @@
+package gui.activities;
+
+import utils.preferences.SettingsFragment;
+
+import com.example.firstapp.R;
+import com.example.firstapp.R.menu;
+
+import android.os.Bundle;
+import android.preference.Preference;
+import android.preference.Preference.OnPreferenceClickListener;
+import android.app.Activity;
+import android.content.Intent;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.EditText;
+
+public class PreferencesActivity extends Activity 
+{
+	private SettingsFragment settingsFragment;
+	
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		// Display the fragment as the main content.
+		
+		settingsFragment = new SettingsFragment();
+		
+		//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+		
+		
+		settingsFragment.registerMouseListener( "return_button", null);
+		/*
+		new OnPreferenceClickListener() 
+		{
+
+			 public boolean onPreferenceClick(Preference preference)
+	            {
+				//	swapBack();
+	            	
+	            	//throw new RuntimeException("Crashing this app!");
+	            	System.exit(1);
+	            	return false;
+	            }    
+               	
+		});
+		/**/
+			//THIS PART BREAKS IT
+		//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+		
+		getFragmentManager().beginTransaction()
+                .replace(android.R.id.content, settingsFragment)
+                .commit();
+		
+		
+				
+	}
+	
+	public void swapBack()
+	{
+		System.exit(1);
+		Intent intent = new Intent(this, Activity_3.class);
+        EditText editText = (EditText) findViewById(R.id.edit_message);
+        String message = editText.getText().toString();
+        intent.putExtra("A", message);
+        startActivity(intent);
+    	
+    	System.out.println("Do a thing");
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.activity_preferences, menu);
+		return true;
+	}
+
+}

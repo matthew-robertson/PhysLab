@@ -1,0 +1,56 @@
+package gui.activities;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+
+import com.example.firstapp.R;
+
+public class MainActivity extends Activity {
+
+	public final static String MAIN_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String NAME_ACTIVITY_MAIN = "main_activity";
+	
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        PreferenceManager.setDefaultValues(this, R.xml.settings_menu, false);
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) 
+    {
+        getMenuInflater().inflate(R.menu.activity_main, menu);
+        return true;
+    }
+    
+    public boolean onOptionsItemSelected(MenuItem item) 
+    {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.preferences_item:
+            	openPreferences();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    
+    public void openPreferences()
+    {
+    	Intent intent = new Intent(this, PreferencesActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, NAME_ACTIVITY_MAIN);
+        startActivity(intent);
+    }
+
+    public void sendMessage(View view)
+    {
+    	Intent intent = new Intent(this, Activity_3.class);
+        intent.putExtra(MAIN_ACTIVITY, "Unneeded_Method");
+        startActivity(intent);
+    }
+}

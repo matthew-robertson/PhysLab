@@ -1,0 +1,11 @@
+package utils.action;
+
+public class ActionQueue 
+{
+	private Action[] _queue;
+	
+	public ActionQueue(int size)
+	{
+		_queue = new Action[size];
+	}
+}

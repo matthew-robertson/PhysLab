@@ -1,0 +1,14 @@
+package utils.action;
+
+public class ActionDelete extends Action
+{
+	public ActionDelete(String description) 
+	{
+		super(description);
+	}
+
+	public ActionDelete()
+	{
+		super();
+	}
+}

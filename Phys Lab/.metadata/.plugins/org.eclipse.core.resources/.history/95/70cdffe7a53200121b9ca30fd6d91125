@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+   <ImageView android:id="background_stone"
+    android:layout_height="wrap_content"
+    android:layout_width="wrap_content"
+    android:src="@drawable/background_stone" />
+</resources>

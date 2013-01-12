@@ -1,0 +1,27 @@
+package project;
+
+public class Project
+{
+	private OptionsObject options;
+	
+	public Project()
+	{
+		options = new OptionsObject();
+	}
+	
+	public Project(OptionsObject options)
+	{
+		this.options = options;
+	}
+	
+	public OptionsObject getOptions()
+	{
+		return options;
+	}	
+	
+	public Project setOptions(OptionsObject options)
+	{
+		this.options = options;
+		return this;
+	}
+}	

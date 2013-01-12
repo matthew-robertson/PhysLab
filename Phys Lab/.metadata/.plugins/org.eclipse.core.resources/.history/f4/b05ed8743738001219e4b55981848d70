@@ -1,0 +1,355 @@
+package project;
+
+import java.util.List;
+
+public class OptionsObject 
+{
+	private List<Point> points;
+	private String videoPath;
+	private String projectSaveDirectory;
+	private double graphScale;
+	private double startingDistance;
+	private double startingTime;
+	private final static String FILEPATH_DEFAULT_SAVE = "FILL THIS IN";
+	
+	public OptionsObject(List<Point> points, String videoPath, String projectSaveDirectory, double graphScale, double startingDistance, double startingTime)
+	{
+		this.points = points;
+		this.videoPath = videoPath;
+		this.projectSaveDirectory = projectSaveDirectory;
+		this.graphScale = graphScale;
+		this.startingDistance = startingDistance;
+		this.startingTime = startingTime;
+	}
+
+	public OptionsObject()
+	{
+		points = new ArrayList<Point>();
+		videoPath = "";
+		projectSaveDirectory = FILEPATH_DEFAULT_SAVE;
+		graphScale = 1.0d;
+		startingDistance = 0.0d;
+		startingTime = 0.0d;
+	}
+	
+	public void clearAllPoints()
+	{
+		points.clear(); //Or make it new again
+	}
+	
+	public void registerPoint(Point point)
+	{
+		points.add(point);
+	}
+	
+	public void clearPoint(int index)
+	{
+		try 
+		{
+			points.remove(index);
+		}
+		catch(Exception E)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+}
+
+interface Graphable
+{
+	public static final int GRAPH_TYPE_POSITION_TIME = 1,
+							GRAPH_TYPE_VELOCITY_TIME = 2,
+							GRAPH_TYPE_ACCELERATION_TIME = 3;
+	
+	public abstract int getGraphType();
+}
+
+public class GraphUtils
+{
+	public GraphableObjectContainer convertRawDataToGraphable(Point[] points)
+	{
+		GraphableObjectContainer container = new GraphableObjectContainer();
+		container.setPositionTimeGraph(convertDataToPositionTime(points));
+		container.setVelocityTimeGraph(convertDataToVelocityTime(points));
+		container.setAccelerationTimeGraph(convertDataToAccelerationTime(container.getVelocityTimeGraph().getPoints()));
+		return container;
+	}
+	
+	private GraphableObject convertDataToPositionTime(Point[] points)
+	{
+		GraphableObject graphable = new Graphable();
+		graphable.setPoints(sortPointsArrayByTime(points)); //<<Prone to reference errors
+		graphable.setGraphType(Graphable.GRAPH_TYPE_POSITION_TIME);
+		graphable.setMinValue(graphable.getFirstPoint().getY());
+		graphable.setMaxValue(graphable.getLastPoint().getY());
+		return graphable;
+	}
+	
+	private GraphableObject convertDataToVelocityTime(Point[] points)
+	{
+		GraphableObject graphable = new Graphable();
+		points = convertPointsToVT(points); //<<Prone to reference errors
+		graphable.setPoints(sortPointsArrayByTime(points));
+		graphable.setGraphType(Graphable.GRAPH_TYPE_VELOCITY_TIME);
+		graphable.setMinValue(graphable.getFirstPoint().getY());
+		graphable.setMaxValue(graphable.getLastPoint().getY());
+		return graphable;
+	}
+		
+	private GraphableObject convertDataToAccelerationTime(Point[] points)
+	{
+		GraphableObject graphable = new Graphable();
+		points = convertPointsToAT(points); //<<Prone to reference errors.
+		graphable.setPoints(sortPointsArrayByTime(points));
+		graphable.setGraphType(Graphable.GRAPH_TYPE_ACCELERATION_TIME);
+		graphable.setMinValue(graphable.getFirstPoint().getY());
+		graphable.setMaxValue(graphable.getLastPoint().getY());
+		return graphable;
+	}	
+	
+	private Point[] convertPointsToVT(Point[] points)
+	{
+		//http://www.physicssource.ca/pgs/2001_kin_emath_02.html
+		
+		/*
+			rough formula:
+			change v = change d / change t = (d2-d1) / (t2-t1)
+		*/
+		Point[] newPoints = new Point[points.length - 1];
+		
+		for(int i = 0; i < points.length - 1; i++)
+		{
+			Point temp = new Point();
+			temp.setX(points[i].getX());
+			temp.setY((float)(points[i+1].getY() - points[i].getY()) / (float)(points[i+1].getX() - points[i].getX()));
+			newPoints[i] = temp;
+		}
+			
+		return newPoints;
+	}
+	
+	private Point[] convertPointsToAT(Point[] points)
+	{
+		/*
+			rough formula:
+			change a = change v / change t = (v2-v1) / (t2-t1)
+		*/
+		Point[] newPoints = new Point[points.length - 1];
+		
+		for(int i = 0; i < points.length - 1; i++)
+		{
+			Point temp = new Point();
+			temp.setX(points[i].getX());
+			temp.setY((float)(points[i+1].getY() - points[i].getY()) / (float)(points[i+1].getX() - points[i].getX()));
+			newPoints[i] = temp;
+		}
+		
+		return points;
+	}
+		
+	private Point[] sortPointsArrayByTime(Point[] points)
+	{
+		return shellsort(points);
+	}
+	
+    private void shellsort(Point[] a )
+    {
+        for( int gap = a.length / 2; gap > 0; gap = gap == 2 ? 1 : (int) ( gap / 2.2 ) )
+		{
+            for(int i = gap; i < a.length; i++)
+            {
+                Point tmp = a[i];
+                int j = i;
+
+                for( ; j >= gap && tmp.compareTo(a[j - gap]) < 0; j -= gap)
+				{
+                    a[j] = a[j - gap];
+                }
+				a[j] = tmp;
+			}
+		}
+    } 
+	
+	/**
+	//http://stackoverflow.com/questions/4833423/shell-sort-java-example
+	 * Point.java needs a compareTo(Point) method for shell sort
+	 */ 
+}
+
+//Addition to the point class
+public class Point 
+{
+    /**
+     * Compares a point to this point by X value
+	 * @return -1 if the x value is lower, 0 if the x value is the same, 1 if the x value is greater
+     */
+	public int compareTo(Point point)
+	{
+		return (point.getX() < x) ? -1 : (point.getX() == x) ? 0 : 1; 
+	}
+	
+	//Point labels? X="", Y=""?
+}
+
+public class GraphableObjectContainer
+{
+	private GraphableObject positionTimeGraph;
+	private GraphableObject velocityTimeGraph;
+	private GraphableObject accelerationTimeGraph;
+	
+	public GraphableObjectContainer(GraphableObject positionTime, GraphableObject velocityTime, GraphableObject accelerationTime)
+	{
+		this.positionTimeGraph = positionTime;
+		this.velocityTimeGraph = velocityTime;
+		this.accelerationTimeGraph = accelerationTime;	
+	}
+
+	public GraphableObjectContainer()
+	{
+		this.positionTimeGraph = new GraphableObject();
+		this.velocityTimeGraph = new GraphableObject();
+		this.accelerationTimeGraph = new GraphableObject();
+	}
+	
+	public GraphableObjectContainer setPositionTimeGraph(GraphableObject ptg)
+	{
+		this.positionTimeGraph = ptg;
+		return this;
+	}
+	
+	public GraphableObjectContainer setVelocityTimeGraph(GraphableObject vtg)
+	{
+		this.velocityTimeGraph = vtg;
+		return this;
+	}
+	
+	public GraphableObjectContainer setAccelerationTimeGraph(GraphableObject atg)
+	{
+		this.accelerationTimeGraph = atg;
+		return this;
+	}
+	
+	public GraphableObject getPositionTimeGraph()
+	{
+		return positionTimeGraph;
+	}
+	
+	public GraphableObject getVelocityTimeGraph()
+	{
+		return velocityTimeGraph;
+	}
+	
+	public GraphableObject getAccelerationTimeGraph()
+	{
+		return accerationTimeGraph;
+	}
+}
+
+public class GraphableObject implements Graphable
+{
+	private Point[] points;
+	private double minValue;
+	private double maxValue;
+	private int graphType;
+
+	public GraphableObject(Point[] points, double minValue, double maxValue, int graphType)
+	{
+		this.points = points;
+		this.minValue = minValue;
+		this.maxValue = maxValue;
+		this.graphType = graphType;
+	}
+	
+	public int getGraphType()
+	{
+		return graphType;
+	}
+	
+	public Point getFirstPoint()
+	{
+		return (points.length > 0) ? points[0] : null;
+	}
+	
+	public Point getLastPoint()
+	{
+		return (points.length > 0) ? points[points.length - 1] : null;
+	}
+	
+	public GraphableObject setGraphType(int i)
+	{
+		this.graphType = i;
+		return this;
+	}
+	
+	public GraphableObject setMinValue(double d)
+	{
+		this.minValue = d;
+		return this;
+	}
+	
+	public GraphableObject setMaxValue(double d)
+	{	
+		this.maxValue = d;
+		return this;
+	}
+	
+	public double getMinValue()
+	{
+		return minValue;
+	}
+	
+	public double getMaxValue()
+	{
+		return maxValue;
+	}
+	
+	public Point[] getPoints()
+	{
+		return points;
+	}
+	
+	public GraphableObject setPoints(Point[] points)
+	{
+		this.points = points;
+		return this;
+	}
+	
+	public GraphableObject changePoint(int index, Point point)
+	{
+		try
+		{
+			this.points.get(index).replace(point);
+		}
+		catch(Exception e) //Invalid index Error
+		{
+			e.printStackTrace();
+			this.points.add(point);
+		}
+	}
+}
+
+//probably not a class, will be addition to something else.
+public class DrawGraphs
+{
+	public GraphableObjectContainer graphable;
+	
+	public boolean updateGraphable(GraphableObjectContainer graphable)
+	{
+		this.graphable = graphable;
+	}
+
+	public void onDraw()
+	{
+		//Axis
+		//Axis Labels (inc scale numbers on x/y
+		//+/- Quadrants
+		//Preference? add straight line connections between scatter point dots.
+		//			  >Lines of best fit? Exponential, Linear, Logarithmic, Power
+		//			  >Equation && r^2 value?
+		//Scatter plot -> Plot points. [Done]
+		//Line graph -> Plot points. 
+				//Just Linear Connection?
+	}
+	
+}

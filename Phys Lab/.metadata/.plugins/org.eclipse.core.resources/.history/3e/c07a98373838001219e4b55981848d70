@@ -1,0 +1,54 @@
+package utils.graphing;
+
+import project.Point;
+
+public class Point 
+{
+	private int x;
+	private int y;
+	
+	public Point()
+	{
+		x = 0;
+		y = 0;
+	}
+	
+	public Point(int x, int y)
+	{
+		this.x = x;
+		this.y = y;
+	}
+	
+	public Point setX(int x)
+	{
+		this.x = x;
+		return this;
+	}
+	
+	public Point setY(int y)
+	{
+		this.y = y;
+		return this;
+	}
+	
+	public int getX()
+	{
+		return x;
+	}
+	
+	public int getY()
+	{
+		return y;
+	}
+	
+	 /**
+     * Compares a point to this point by X value
+	 * @return -1 if the x value is lower, 0 if the x value is the same, 1 if the x value is greater
+     */
+	public int compareTo(Point point)
+	{
+		return (point.getX() < x) ? -1 : (point.getX() == x) ? 0 : 1; 
+	}
+	
+	//Point labels? X="", Y=""?
+}

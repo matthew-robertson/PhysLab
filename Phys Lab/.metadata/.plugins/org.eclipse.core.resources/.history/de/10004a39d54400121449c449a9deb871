@@ -1,0 +1,6 @@
+1.0.0
+Initial version lacking features
+
+1.1.0
+Added ActionQueue and Actions (For video)
+Added Saving to disk and loading a project

@@ -1,0 +1,382 @@
+package utils.graphing;
+
+
+public class Boundary 
+{
+    public final Point[] points; // Points making up the boundary
+    
+    public ClickBoundary leftBoundary;
+    public ClickBoundary rightBoundary;
+    public double totalRot = 0;
+    
+    
+    public Boundary()
+    {
+    	points = new Point[4];
+    }
+    
+    public Boundary(int size)
+    {
+    	points = new Point[size];
+    }
+    
+    /**
+     * Assumes the rectangle starts out being "flat" and has 4 points.
+     * Also assumes points are given in a clockwise order around the rectangle.
+     * @param points
+     */
+    public Boundary(Point[] points)
+    {
+    	this.points = points;
+    	calculateClickZones();
+    }
+
+    public void calculateClickZones()
+    {
+    	double width = points[1].getX() - points[0].getX();
+    	double height = points[3].getY() - points[0].getY();
+    	
+    	if(width < 50)
+    	{
+    		width = width / 2;
+    	}
+    	else 
+    	{
+    		width = (width * 0.3 < 25) ? 25: width * 0.3;
+    	}
+    	
+    	double left_left = points[0].getX();
+		double top_left = points[0].getY();
+		double right_left = left_left + width;
+		double bottom_left = top_left + height;
+	
+    	leftBoundary = new ClickBoundary(new Point[] {
+			 	new Point(left_left, top_left),
+			 	new Point(right_left, top_left),
+			 	new Point(right_left, bottom_left),
+			 	new Point(left_left, bottom_left) 
+			 });
+    
+    	double right_right = points[2].getX();
+		double bottom_right = points[2].getY();
+		double left_right = right_right - width;
+		double top_right = right_right - height;
+	
+    	rightBoundary = new ClickBoundary(new Point[] {
+			 	new Point(left_right, top_right),
+			 	new Point(right_right, top_right),
+			 	new Point(right_right, bottom_right),
+			 	new Point(left_right, bottom_right) 
+			 });
+    }
+    		
+    
+    /**
+     * Return true if the given point is contained inside the boundary.
+     * See: http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+     * @param test The point to check
+     * @return true if the point is inside the boundary, false otherwise
+     *
+     */
+    public boolean contains(Point test) 
+    {
+    	int i;
+    	int j;
+    	boolean result = false;
+    	for (i = 0, j = points.length - 1; i < points.length; j = i++) 
+    	{
+    		if ((points[i].y > test.y) != (points[j].y > test.y) &&
+    			(test.x < (points[j].x - points[i].x) * (test.y - points[i].y) / (points[j].y-points[i].y) + points[i].x)) {
+    			result = !result;
+    		}
+    	}
+    	return result;
+    }
+    
+    public boolean contains(double x, double y) 
+    {
+    	int i;
+    	int j;
+    	boolean result = false;
+    	for (i = 0, j = points.length - 1; i < points.length; j = i++) 
+    	{
+    		if ((points[i].y > y) != (points[j].y > y) &&
+    			(x < (points[j].x - points[i].x) * (y - points[i].y) / (points[j].y-points[i].y) + points[i].x)) {
+    			result = !result;
+    		}
+    	}
+    	return result;
+    }
+    
+    public Point rotate_point(double cx, double cy, double angle, Point p)
+	{
+	  double s = Math.sin(Math.toRadians(angle));
+	  double c = Math.cos(Math.toRadians(angle));
+	
+	  //240,220
+	  // translate point back to origin:
+	  p.x -= cx;
+	  p.y -= cy;
+	
+	  // rotate point
+	  double xnew = p.x * c - p.y * s;
+	  double ynew = p.x * s + p.y * c;
+	//v = (13*cos 45° - 3*sin 45°, 13*sin 45° + 3*cos 45°) = (7.07.., 11.31..)
+
+	  
+	  // translate point back:
+	  p.x = xnew + cx;
+	  p.y = ynew + cy;
+	  
+	  return p;
+	}
+    
+    private Point extendLineByLength(Point point1, Point point2, double length)
+    {
+//    	C.x = B.x + (B.x - A.x) / lenAB * length;
+ //   	C.y = B.y + (B.y - A.y) / lenAB * length;
+  // 	lenAB = sqrt((A.x - B.x)**2 + (A.y - B.y)**2)
+  
+    	double lenAB = lineLength(point1, point2);
+    	double x = point2.getX() + (point2.getX() - point1.getX()) / lenAB * length;
+    	double y = point2.getY() + (point2.getY() - point1.getY()) / lenAB * length;
+    			
+    	return new Point(x, y);
+    }
+    
+    private Point pointBetweenTwoPoints(Point point1, Point point2, double length)
+    {
+    	double distance = Math.sqrt(Math.pow(point2.getX() - point1.getX(), 2) + Math.pow(point2.getY() - point1.getY(), 2));
+    	double r = length / distance;
+    	double x3 = (r * point2.getX() + ((1 - r) * point1.getX()));
+    	double y3 = (r * point2.getY() + ((1 - r) * point1.getY()));
+    	
+    	return new Point(x3, y3);
+    }
+    
+    public double lineLength(Point point1, Point point2)
+    {
+    	return Math.sqrt(Math.pow((point2.getX() - point1.getX()), 2) + Math.pow((point2.getY() - point1.getY()), 2));
+    }
+    
+    public double lineLength(double x1, double y1, double x2, double y2)
+	{
+		return Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
+	}
+    
+    public void updateLengthLeft(double newLength)
+    {
+    	/*
+			If your points are (x1, y1) and (x2, y2), and you want to find the point (x3, y3) that is n units away from point 2:
+    		
+    		d = sqrt((x2-x1)^2 + (y2 - y1)^2) #distance
+    		r = n / d #segment ratio
+    		x3 = r * x2 + (1 - r) * x1 #find point that divides the segment
+    		y3 = r * y2 + (1 - r) * y1 #into the ratio (1-r):r
+    	*/
+    	
+    	double currentLength = lineLength(points[0], points[1]);
+    	double lengthChange = (currentLength - newLength); //Positive = shorter; negative = longer;
+    	
+    	if(lengthChange > 20)
+    	{
+    		System.out.println(lengthChange);
+    	}
+    	
+    	Point pointLine1 = null;
+    	Point pointLine2 = null;
+
+    	if(lengthChange < 0)
+    	{
+    		pointLine1 = extendLineByLength(points[1], points[0], Math.abs(lengthChange));
+    		pointLine2 = extendLineByLength(points[2], points[3], Math.abs(lengthChange));
+    	}
+    	else if(lengthChange > 0)
+    	{
+    		pointLine1 = pointBetweenTwoPoints(points[0], points[1], Math.abs(lengthChange));
+    		pointLine2 = pointBetweenTwoPoints(points[3], points[2], Math.abs(lengthChange));
+    	}
+    	
+    	/*
+    	if(pointLine1.getX() > 200)
+    	{
+    		System.out.println("!");
+    	}
+    	*/
+    	
+    	
+    	points[0] = pointLine1;
+    	points[3] = pointLine2;
+    	
+    	//Fine to here
+    	    	
+    	double width = currentLength;
+    	
+    	if(width < 50)
+    	{
+    		width = width / 2;
+    	}
+    	else 
+    	{
+    		width = (width * 0.3 < 25) ? 25: width * 0.3;
+    	}
+    	
+    	Point pointLine1_1 = pointBetweenTwoPoints(points[0], points[1], Math.abs(width));
+    	
+    	Point pointLine2_1 = pointBetweenTwoPoints(points[3], points[2], Math.abs(width));
+        
+    	/*
+    	if(pointLine1_1.getX() > 200)
+    	{
+    		System.out.println("!!");
+    	}
+    	*/
+    	leftBoundary.points[1] = pointLine1_1;
+    	leftBoundary.points[2] = pointLine2_1;
+    	leftBoundary.points[0] = points[0];
+    	leftBoundary.points[3] = points[3];
+    	
+    }
+    
+    public void updateLengthRight(double newLength)
+    {
+    	/*
+		If your points are (x1, y1) and (x2, y2), and you want to find the point (x3, y3) that is n units away from point 2:
+		
+		d = sqrt((x2-x1)^2 + (y2 - y1)^2) #distance
+		r = n / d #segment ratio
+		x3 = r * x2 + (1 - r) * x1 #find point that divides the segment
+		y3 = r * y2 + (1 - r) * y1 #into the ratio (1-r):r
+		*/
+    	double currentLength = lineLength(points[1], points[0]);
+    	double lengthChange = (currentLength - newLength); //Positive = shorter; negative = longer;
+    	
+    	if(lengthChange > 20)
+    	{
+    		System.out.println(lengthChange);
+    	}
+    	
+    	Point pointLine1 = null;
+    	Point pointLine2 = null;
+
+    	if(lengthChange < 0)
+    	{
+    		pointLine1 = extendLineByLength(points[0], points[1], Math.abs(lengthChange));
+    		pointLine2 = extendLineByLength(points[3], points[2], Math.abs(lengthChange));
+    	}
+    	else if(lengthChange > 0)
+    	{
+    		pointLine1 = pointBetweenTwoPoints(points[1], points[0], Math.abs(lengthChange));
+    		pointLine2 = pointBetweenTwoPoints(points[2], points[3], Math.abs(lengthChange));
+    	}
+    	
+    	/*
+    	if(pointLine1.getX() > 200)
+    	{
+    		System.out.println("!");
+    	}
+    	*/
+    	
+    	
+    	points[1] = pointLine1;
+    	points[2] = pointLine2;
+    	
+    	//Fine to here
+    	    	
+    	double width = currentLength;
+    	
+    	if(width < 50)
+    	{
+    		width = width / 2;
+    	}
+    	else 
+    	{
+    		width = (width * 0.3 < 25) ? 25: width * 0.3;
+    	}
+    	
+    	Point pointLine1_1 = pointBetweenTwoPoints(points[1], points[0], Math.abs(width));
+    	
+    	Point pointLine2_1 = pointBetweenTwoPoints(points[2], points[3], Math.abs(width));
+        
+    	/*
+    	if(pointLine1_1.getX() > 200)
+    	{
+    		System.out.println("!!");
+    	}
+    	*/
+    	rightBoundary.points[1] = pointLine1_1;
+    	rightBoundary.points[2] = pointLine2_1;
+    	
+    	
+    	
+    }
+    
+    public void rotateOnRightCenter(double angle)
+    {
+    //	angle = 180.0;
+    	Point centerPoint = centerOfRightLine();
+		
+    	for(int i = 0; i < points.length; i++)
+    	{
+    		points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, points[i]);
+    	}
+    	
+    	for(int i = 0; i < leftBoundary.points.length; i++)
+    	{
+    		leftBoundary.points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, leftBoundary.points[i]);
+    	}
+    	
+    	for(int i = 0; i < rightBoundary.points.length; i++)
+    	{
+    		rightBoundary.points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, rightBoundary.points[i]);
+    	}
+
+    	
+    }
+    
+    public void rotateOnLeftCenter(double angle)
+    {
+		Point centerPoint = centerOfLeftLine();
+		
+    	for(int i = 0; i < points.length; i++)
+    	{
+    		points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, points[i]);
+    	}
+    	
+    	for(int i = 0; i < leftBoundary.points.length; i++)
+    	{
+    		leftBoundary.points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, leftBoundary.points[i]);
+    	}
+    	
+    	for(int i = 0; i < rightBoundary.points.length; i++)
+    	{
+    		rightBoundary.points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, rightBoundary.points[i]);
+    	}
+    }
+    
+    
+    public boolean isInLeftBounds(float x, float y)
+    {
+    	return leftBoundary.contains(x, y);
+    }
+    
+    public boolean isInRightBounds(float x, float y)
+    {
+    	return rightBoundary.contains(x, y);
+    }
+    
+    public Point centerOfLeftLine()
+	{
+		return new Point((points[3].getX() + points[0].getX()) / 2, (points[3].getY() + points[0].getY()) / 2);
+	}
+	
+    public Point centerOfRightLine()
+	{
+		return new Point((points[1].getX() + points[2].getX()) / 2, (points[1].getY() + points[2].getY()) / 2);
+	}
+    
+    public void rotate(float angle)
+    {
+    	
+    }
+}

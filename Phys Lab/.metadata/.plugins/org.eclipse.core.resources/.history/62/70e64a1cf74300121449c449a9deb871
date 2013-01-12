@@ -1,0 +1,109 @@
+package utils.action;
+
+import java.util.List;
+
+public class ActionQueue 
+{
+	private Action[] _queue;
+	private int first;
+	private int last;
+	
+	public ActionQueue(int size)
+	{
+		_queue = new Action[size];
+		last = -1;
+		first = 0;
+	}
+	
+	/**
+	 * @deprecated Untested and volatile
+	 * @param size
+	 * @param initialActions
+	 */
+	public ActionQueue(int size, List<Action> initialActions)
+	{
+		_queue = new Action[size];
+		first = 0;
+		last = initialActions.size();
+		if(size < initialActions.size())
+		{
+			//Do not populate the ActionQueue because there isnt enough room.
+			return;
+		}
+		
+		for(int i = 0; i < initialActions.size(); i++)
+		{
+			_queue[i] = initialActions.get(i);
+		}
+	}
+	
+	/**
+	 * Add to the end
+	 * @param action
+	 */
+	public void enqueue(Action action)
+	{
+		_queue[++last] = action;
+		if(last >= _queue.length)
+		{
+			last = 0;
+		}
+		if(first == last)
+		{
+			first++;
+		}
+		
+	}
+	
+	/**
+	 * Remove all elements
+	 * @param index
+	 */
+	public void clear()
+	{
+		for(int i = 0; i < _queue.length; i++)
+		{
+			_queue[i] = null;
+		}
+		first = 0;
+		last = 0;
+	}
+	
+	/**
+	 * Gets element at specified index.
+	 * @param index
+	 */
+	public Action get(int index)
+	{
+		int i = index + first;
+		while(i >= _queue.length)
+		{
+			i -= _queue.length;
+		}
+		
+		return _queue[i];
+	}
+	
+	/**
+	 * Gets the front element of the and removes it
+	 */
+	public Action poll()
+	{
+		Action action = _queue[first];
+		_queue[first] = null;
+		first++;
+		if(first >= _queue.length)
+		{
+			first = 0;
+		}
+		return action;
+	}
+	
+	/**
+	 * Check the first element of the queue, but doesnt remove it.
+	 */
+	public Action peek()
+	{
+		return _queue[first];
+	}
+}

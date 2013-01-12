@@ -1,0 +1,63 @@
+package project;
+
+import utils.action.QueueAction;
+import utils.graphing.GraphUtils;
+import utils.graphing.GraphableObjectContainer;
+import utils.graphing.Point;
+
+public class Project
+{
+	private OptionsObject options;
+	public GraphableObjectContainer graphable;
+	private QueueAction actionQueue;
+	private static final int ACTION_QUEUE_SIZE = 20;
+	
+	public Project()
+	{
+		actionQueue = new QueueAction(ACTION_QUEUE_SIZE);
+		options = new OptionsObject();
+		graphable = new GraphableObjectContainer();
+	}
+	
+	public Project(OptionsObject options, GraphableObjectContainer graphable)
+	{
+		this.actionQueue = new QueueAction(ACTION_QUEUE_SIZE);
+		this.options = options;
+		this.graphable = graphable;
+	}
+	
+	public void updateGraphable()
+	{
+		GraphUtils utils = new GraphUtils();
+		Point[] points = options.getPointsAsArray();
+		graphable = utils.convertRawDataToGraphable(points);
+		System.out.println("Breakpoint");
+	}
+	
+	public ActionQueue getActionQueue()
+	{
+		return actionQueue;
+	}
+	
+	public GraphableObjectContainer getGraphable()
+	{
+		return graphable;
+	}
+	
+	public Project setGraphable(GraphableObjectContainer graphable)
+	{
+		this.graphable = graphable;
+		return this;
+	}
+	
+	public OptionsObject getOptions()
+	{
+		return options;
+	}	
+	
+	public Project setOptions(OptionsObject options)
+	{
+		this.options = options;
+		return this;
+	}
+}	

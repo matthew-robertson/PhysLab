@@ -1,0 +1,41 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 
+    <Preference android:key="preference_close_preferences"
+        android:title="@string/preference_close_preferences" />
+    -->
+     
+    <PreferenceCategory 
+        android:title="@string/preferences_title_project"
+        android:key="pref_key_storage_settings">
+        <CheckBoxPreference
+            android:key="preference_default_save_option"
+            android:summary="@string/preference_save_option_summary"
+            android:title="@string/preference_save_option_title" />
+
+        <Preference 
+            android:key="preference_clear_all_data"
+            android:summary="@string/preference_clear_data_summary"
+            android:title="@string/preference_clear_data"/>
+           <ListPreference 
+			    android:key="preference_measure"
+			    android:title="Measure distance using:"
+			    android:summary="Value(s) used to calculate the y-axis of graphs"
+			    android:entries="@array/listArray"
+			    android:entryValues="@array/listValues"/>
+       <!-- 
+        <CheckBoxPreference
+		     android:key="preference_measure_x"
+		     android:summary="@string/preference_measure_x_summary"
+		     android:title="@string/preference_measure_x_title" />
+        <CheckBoxPreference
+		     android:key="preference_measure_y"
+		     android:summary="@string/preference_measure_y_summary"
+		     android:title="@string/preference_measure_y_title" />
+        <CheckBoxPreference
+		     android:key="preference_measure_total"
+		     android:summary="@string/preference_measure_total_summary"
+		     android:title="@string/preference_measure_total_title" />
+    -->
+    </PreferenceCategory>
+    
+</PreferenceScreen>

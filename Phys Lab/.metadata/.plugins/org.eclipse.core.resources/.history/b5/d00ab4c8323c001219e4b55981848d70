@@ -1,0 +1,138 @@
+package gui.activities;
+
+import utils.drawing.Panel;
+import utils.graphing.GraphableObject;
+import android.app.Activity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.TabHost;
+import android.widget.TabHost.TabSpec;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
+
+import com.example.firstapp.R;
+
+public class Activity_3 extends Activity 
+{
+	public final static String GRAPHING_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String NAME_ACTIVITY_GRAPHING = "graphing_activity";
+	
+	
+    public void onCreate(Bundle savedInstanceState) 
+    {
+        super.onCreate(savedInstanceState);
+        //setContentView(new Panel(this));
+        setContentView(R.layout.activity_activity_3);
+        
+        TabHost tabHost= (TabHost) findViewById(R.id.tabHost);
+        tabHost.setup();
+
+        Panel panel_tab_1 = (Panel)findViewById(R.id.panel_position_time);
+        panel_tab_1.updateGraphableObject(new GraphableObject());
+        
+        Panel panel_tab_2 = (Panel)findViewById(R.id.panel_velocity_time);
+        panel_tab_2.updateGraphableObject(new GraphableObject());
+        
+        Panel panel_tab_3 = (Panel)findViewById(R.id.panel_acceleration_time);
+        panel_tab_3.updateGraphableObject(new GraphableObject());
+        
+        TabSpec dataTab = tabHost.newTabSpec("Data");
+        dataTab.setContent(R.id.data_tab);
+        dataTab.setIndicator("Data");
+        
+        TabSpec spec1 = tabHost.newTabSpec("P/T");
+        spec1.setContent(R.id.tab1);
+        spec1.setIndicator("P/T");
+
+        TabSpec spec2 = tabHost.newTabSpec("V/T");
+        spec2.setIndicator("V/T");
+        spec2.setContent(R.id.tab2);
+
+        TabSpec spec3 = tabHost.newTabSpec("A/T");
+        spec3.setIndicator("A/T");
+        spec3.setContent(R.id.tab3);
+
+        tabHost.addTab(spec1);
+        tabHost.addTab(spec2);
+        tabHost.addTab(spec3);
+        tabHost.addTab(dataTab);
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) 
+    {
+    	getMenuInflater().inflate(R.menu.activity_2_menu, menu);
+        return true;
+    }
+   
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_bar_video:
+                swapToMainActivity();
+                return true;
+            case R.id.action_bar_save:
+            	openPreferences();
+            	return true;
+            case R.id.action_bar_graph:
+            	generateGraphs();
+            	return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    
+    public void updataDataTab()
+    {
+    	//Needs .isChanged boolean for the data object thing to tell if this is needed. Will offer a speed up and reduction in
+    	//stupid wastefulness
+    	
+    	// reference the table layout
+    	
+    	TableLayout tbl = (TableLayout)findViewById(R.id.table_layout_data);
+    	
+    	// delcare a new row
+    	TableRow newRow = new TableRow(this);
+    	// add views to the row
+    	newRow.addView(new TextView(this)); // you would actually want to set properties on this before adding it
+    	// add the row to the table layout
+    	tbl.addView(newRow);
+    }
+    
+	public int getWidth()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.x;
+	}
+	
+	public int getHeight()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.y;
+	}	
+    
+    public void generateGraphs()
+    {
+    	
+    }
+    
+    public void openPreferences()
+    {
+    	Intent intent = new Intent(this, PreferencesActivity.class);
+        intent.putExtra(GRAPHING_ACTIVITY, NAME_ACTIVITY_GRAPHING);
+        startActivity(intent);
+    }
+    
+    public void swapToMainActivity()
+    {
+    	Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra(GRAPHING_ACTIVITY, NAME_ACTIVITY_GRAPHING);
+        startActivity(intent);
+    }
+}

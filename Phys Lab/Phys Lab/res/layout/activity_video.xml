@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_video_relative_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal" 
+    
+    >
+<!-- 
+     <utils.drawing.DrawablePanel
+	    android:id="@+id/drawable_area_paint_thing" 
+	    android:layout_width="fill_parent"
+	    android:layout_height="wrap_content"
+	    android:layout_marginTop="3dp"
+	    android:layout_marginLeft="0dp"
+	    android:layout_marginRight="0dp"
+	    android:background="#FFFFFF" />
+      -->
+     
+     <NumberPicker
+        android:id="@+id/stepcontrol"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@+id/button1"
+        android:orientation="vertical" />
+
+    <SeekBar
+        android:id="@+id/seekControl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/stepcontrol"
+        android:layout_alignParentLeft="true" />
+
+    <VideoView
+        android:id="@+id/track"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/seekControl"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true" />
+
+    <Button
+        android:id="@+id/button1"
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignTop="@+id/stepcontrol"
+        android:onClick="playButton"
+        android:text="Play/Pause" />
+
+    <android.gesture.GestureOverlayView
+        android:id="@+id/gestureOverlayView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/seekControl"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:onClick="videoClick" >
+
+    </android.gesture.GestureOverlayView>
+     
+     
+     <EditText
+        android:id="@+id/scale_text_zone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" 
+ 		android:gravity="top"
+ 		android:visibility="invisible" >
+ 		
+        <requestFocus />
+ 
+    </EditText>
+    
+   <ImageView
+        android:id="@+id/image_view_horizontal_axis"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+       android:visibility="invisible"
+       
+       android:scaleType="center"
+        android:src="@drawable/shape_axis" />
+        
+    <ImageView
+      android:id="@+id/image_view_vertical_axis"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:visibility="invisible"
+ android:scaleType="center"       
+      android:src="@drawable/shape_axis" />
+      
+    <ImageView
+      android:id="@+id/image_view_origin"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+ android:visibility="invisible"
+ android:scaleType="center"
+        android:src="@drawable/shape_origin" />
+        
+  
+    <ImageView
+      android:id="@+id/image_view_scale"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+ android:visibility="invisible"
+        android:src="@drawable/scale" />
+    <!-- 
+ android:background="@drawable/background" -->    
+    
+    <!--  
+    <ImageView
+      android:id="@+id/image_cursor_scale"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+ android:visibility="invisible"
+        android:src="@drawable/shape_axis" />
+       --> 
+    
+    <!-- 
+	<EditText
+	    android:id="@+id/edit_message"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:layout_weight="1"
+	    android:hint="@string/edit_message" />
+
+	<Button
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:layout_alignParentLeft="true"
+	    android:layout_below="@+id/edit_message"
+	    android:layout_marginTop="25dp"
+	    android:onClick="sendMessage"
+	    android:text="@string/button_send" />
+ 	-->
+ 
+</RelativeLayout>

@@ -1,0 +1,209 @@
+package utils.drawing;
+
+import gui.activities.MainActivity;
+
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+
+import utils.graphing.GraphableObject;
+import utils.graphing.GraphableObjectContainer;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.util.AttributeSet;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+
+public class Panel extends SurfaceView implements SurfaceHolder.Callback
+{
+    private DrawingThread _thread;
+    //private Paint paint;
+
+    public Panel(Context context, AttributeSet attrs, int defStyle) 
+    {
+        super(context, attrs, defStyle);
+    }
+
+    public Panel(Context context, AttributeSet attrs) 
+    {
+        super(context, attrs);
+    }
+    
+    public Panel(Context context) 
+    {
+        super(context);
+        getHolder().addCallback(this);
+        _thread = new DrawingThread(getHolder(), this);
+  //      paint = new Paint();
+    }
+
+	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) 
+	{
+	}
+
+	public void surfaceCreated(SurfaceHolder holder) 
+	{
+	    _thread.setRunning(true);
+	    _thread.start();
+	}
+	 
+	public void surfaceDestroyed(SurfaceHolder holder) 
+	{
+	    // simply copied from sample application LunarLander:
+	    // we have to tell thread to shut down & wait for it to finish, or else
+	    // it might touch the Surface after we return and explode
+	    boolean retry = true;
+	    _thread.setRunning(false);
+	    while (retry) 
+	    {
+	        try 
+	        {
+	            _thread.join();
+	            retry = false;
+	        } catch (InterruptedException e) 
+	        {
+	            // we will try it again and again...
+	        }
+	    }
+	}
+	
+	/*
+	public void drawLine(int x, int y, int w, int h)
+	{
+//		canvas.drawLine(x, y, w, h, paint);
+	}
+	
+	public void drawCircle()
+	{
+		
+	}
+	
+	public void setPaint(Paint paint)
+	{
+		
+	}
+	
+	public void resetPaint()
+	{
+		
+	}
+	*/
+	
+	public void updateGraphableObject(GraphableObject graphable)
+	{
+		this.graphableObject = graphable;
+	}
+	
+	private GraphableObject graphableObject;
+		
+	public double roundToTwoDecimals(double d)
+	{
+		return ((double)Math.round(d * 100) / 100);
+	}
+	
+	public String makeNumberSafe(double d)
+	{
+		if(d == 0)
+		{
+			return "0.0";
+		}
+		else if((d <= 100.00D && d >= 1.00D) || (d <= -1.00D && d >= -100.00D))
+		{
+			return ""+roundToTwoDecimals(d);
+		}
+		else 
+		{	
+			NumberFormat formatter = new DecimalFormat("0.###E0");
+			//System.out.println(formatter.format(d)); // x.xxEx
+			return formatter.format(d);
+		}
+	}
+	
+	public void onDraw(Canvas canvas) 
+	{
+		canvas.drawColor(Color.BLACK);
+		Paint paint = new Paint();
+		paint.setColor(Color.WHITE);
+		
+		Paint paintBlue = new Paint();
+		paintBlue.setColor(Color.YELLOW);
+		
+		final int leftPadding = 40;
+		final int rightPadding = 40;
+		final int bottomPadding = 20;
+		final int topPadding = 20;
+		
+		//Positive only
+		canvas.drawLine(leftPadding, topPadding, leftPadding, this.getHeight() - bottomPadding, paint);
+		canvas.drawLine(leftPadding, this.getHeight() - bottomPadding, this.getWidth() - rightPadding, this.getHeight() - bottomPadding , paint);
+		//If minvalue < 0... for the Y anyway.
+		
+		GraphableObjectContainer graphable = MainActivity.mainProject.getGraphable();
+		
+		
+		//Rect textBounds = new Rect();
+		
+		//All this is for position time currently
+		
+		double max = graphable.getPositionTimeGraph().getMaxValue();
+		
+		for(int i = 0; i < 5; i++)
+		{
+			String text = makeNumberSafe(max * (i * 0.25D));
+		
+			Rect textBounds = new Rect();
+			paint.getTextBounds(text, 0, text.length(), textBounds);
+			canvas.drawText(text, 
+					(int)(leftPadding + ((getWidth() - leftPadding - rightPadding) * (i * 0.25D)) - (textBounds.width() * 0.5D)), 
+					2 + this.getHeight() - bottomPadding + textBounds.height() - textBounds.bottom, 
+					paint);
+			canvas.drawLine(leftPadding + (int)((getWidth() - leftPadding - rightPadding) * (i * 0.25D)), 
+					getHeight() -  bottomPadding - 3,
+					leftPadding + (int)((getWidth() - leftPadding - rightPadding) * (i * 0.25D)), 
+					getHeight() - bottomPadding + 3, 
+					paintBlue);
+		}
+		
+		
+		
+		
+		
+		
+		//Y values:
+		
+		double h_max = graphable.getPositionTimeGraph().getMaxValue();
+		
+		for(int i = 0; i < 5; i++)
+		{
+			String h_text = makeNumberSafe(h_max * ((4 - i) * 0.25D));
+		
+			Rect h_textBounds = new Rect();
+			paint.getTextBounds(h_text, 0, h_text.length(), h_textBounds);
+			canvas.drawText(h_text,
+					leftPadding - h_textBounds.width() - 2, 
+					(int)(topPadding + ((getHeight() - topPadding - bottomPadding) * (i * 0.25D)) + h_textBounds.height() - (0.5D * h_textBounds.height()) - h_textBounds.bottom), 
+					paint);
+	
+			canvas.drawLine(leftPadding - 3, topPadding + (int)((getHeight() - topPadding - bottomPadding) * (i * 0.25D)), leftPadding + 3, topPadding + (int)((getHeight() - topPadding - bottomPadding) * (i * 0.25D)), paintBlue);
+		}
+		
+		
+		
+		
+		/**
+		Great way to render text:
+		String text = "Hello World";
+		Rect textBounds = new Rect();
+		paint.getTextBounds(text, 0, text.length(), textBounds);
+		canvas.drawText(text, leftPadding, this.getHeight() - 20 + textBounds.height() - textBounds.bottom, paint);
+		*/
+		
+        //Bitmap _scratch = BitmapFactory.decodeResource(getResources(), R.drawable.icon);
+        //canvas.drawColor(Color.BLUE);
+        //canvas.drawLine(10, 10, 100, 100, new Paint());
+        //canvas.drawBitmap(_scratch, 10, 10, null);
+    }
+}

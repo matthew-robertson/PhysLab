@@ -1,0 +1,31 @@
+package utils.preferences;
+
+import com.example.firstapp.R;
+import android.os.Bundle;
+import android.preference.Preference;
+import android.preference.Preference.OnPreferenceClickListener;
+import android.preference.PreferenceFragment;
+
+public class SettingsFragment extends PreferenceFragment 
+{
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        addPreferencesFromResource(R.xml.settings_menu);
+        registerMouseListener("return_button", null);
+    }
+
+    public void registerMouseListener(String key, OnPreferenceClickListener listener)
+    {
+    	Preference myPref = (Preference) findPreference(key);
+    	myPref.setOnPreferenceClickListener(    	
+    	new OnPreferenceClickListener() 
+		{
+            public boolean onPreferenceClick(Preference preference) 
+            {
+				
+            	return false;
+            }
+    	});
+    }
+}

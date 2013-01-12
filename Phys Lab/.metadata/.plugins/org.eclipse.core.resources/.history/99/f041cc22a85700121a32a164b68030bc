@@ -1,0 +1,135 @@
+package gui.activities;
+
+import java.io.File;
+import java.io.FilenameFilter;
+
+import android.app.ListActivity;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.media.ThumbnailUtils;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.TextView;
+
+public class VideoSelect extends ListActivity {
+
+	private File sdlist;
+	private String[] videos;
+	private Bitmap[] videoThumb;
+	private TextView selection;
+	public final static String VIDEO_SELECT_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String NAME_ACTIVITY_VIDEO_SELECT = "video_select_activity";
+	private final static String VIDEO_ERROR_NONE_FOUND = "There dont seem to be any videos available on external storage. "
+			+ "Please add videos to the root directory of your sd card (external storage).";
+
+	public boolean canReadStorage() {
+		String state = Environment.getExternalStorageState();
+		if (Environment.MEDIA_MOUNTED.equals(state)
+				|| Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+			// We can read
+			return true;
+		}
+		return false;
+	}
+
+    public void openPreferences()
+    {
+    	Intent intent = new Intent(this, PreferencesActivity.class);
+        intent.putExtra(VIDEO_SELECT_ACTIVITY, NAME_ACTIVITY_VIDEO_SELECT);
+        startActivity(intent);
+    }
+	
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle item selection
+		switch (item.getItemId()) {
+		case R.id.action_bar_select_preferences:
+			openPreferences();
+			return true;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_video_select);
+
+		if (canReadStorage()) {
+			sdlist = new File(Environment.getExternalStorageDirectory()
+					.toString());
+		} else {
+			// return;
+		}
+
+		// Create the filter for mp4s
+		FilenameFilter filter = new FilenameFilter() {
+			public boolean accept(File directory, String fileName) {
+				return fileName.endsWith(".mp4");
+			}
+		};
+
+		videos = sdlist.list(filter);
+		if (videos.length == 0) {
+			LinearLayout layout = (LinearLayout) (findViewById(R.id.layout_select_video));
+			TextView textView = new TextView(this);
+			textView.setText(VIDEO_ERROR_NONE_FOUND);
+
+			layout.addView(textView);
+		} else {
+			
+			if(VideoActivity.mainProject == null)
+			{
+				Button button = new Button(this);
+				
+				LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(((getWidth() * 0.4)), (getHeight() / 10));
+				
+				LinearLayout layout = (LinearLayout) (findViewById(R.id.layout_select_video));
+				layout.addView(button);
+			}
+			
+			videoThumb = new Bitmap[videos.length];
+
+			for (int i = 0; i < videoThumb.length; i++) {
+				videoThumb[i] = ThumbnailUtils.createVideoThumbnail(videos[i],
+						MediaStore.Video.Thumbnails.MICRO_KIND);
+			}
+
+			setListAdapter(new ArrayAdapter<String>(this, R.layout.vidlist,
+					R.id.video_name, videos));
+
+			ListView videolist = getListView();
+
+			videolist.setOnItemClickListener(new OnItemClickListener() {
+				public void onItemClick(AdapterView<?> parent, View view,
+						int position, long id) {
+
+					// Grab the selected item from the list of names
+					String fileName = (videos[position]);
+					// Launch VideoActivity
+					Intent i = new Intent(getApplicationContext(),
+							VideoActivity.class);
+					// Send data
+					i.putExtra("fileName", fileName);
+					startActivity(i);
+				}
+			});
+		}
+	}
+
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.activity_video_select, menu);
+		return true;
+	}
+}

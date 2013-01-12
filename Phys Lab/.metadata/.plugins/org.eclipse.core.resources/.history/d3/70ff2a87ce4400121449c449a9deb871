@@ -1,0 +1,14 @@
+package utils.action;
+
+public enum EnumAction 
+{
+	ACTION_DELETE_POINT("ACTION_DELETE_POINT"),
+	ACTION_ADD_POINT("ACTION_ADD_POINT");
+	
+	EnumAction(String str)
+	{
+		this.actionValue = str;
+	}
+	
+	public String actionValue;
+}

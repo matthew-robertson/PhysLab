@@ -1,0 +1,10 @@
+package utils.action;
+
+public class Action 
+{
+	public Action(String description)
+	{
+		
+	}
+	
+}

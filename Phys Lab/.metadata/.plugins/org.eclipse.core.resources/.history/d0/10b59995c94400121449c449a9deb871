@@ -1,0 +1,112 @@
+package gui.activities;
+
+import project.Project;
+import android.app.Activity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.view.Menu;
+import android.view.MenuItem;
+
+public class VideoActivity extends Activity 
+{
+	public final static String MAIN_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String NAME_ACTIVITY_MAIN = "main_activity";
+	public static Project mainProject;
+	private boolean plottingPoints;
+	
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_video);
+        PreferenceManager.setDefaultValues(this, R.xml.preferences_menu, false);
+        mainProject = new Project();
+        plottingPoints = false;
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) 
+    {
+        getMenuInflater().inflate(R.menu.activity_video, menu);
+        return true;
+    }
+    
+    public boolean onOptionsItemSelected(MenuItem item) 
+    {
+        // Handle item selection
+        switch (item.getItemId()) 
+        {
+            case R.id.preferences_item:
+            	openPreferences();
+                return true;
+            case R.id.action_bar_graph:
+            	openGraphs();
+            	return true;
+            case R.id.action_bar_undo:
+            	reverseLastAction();
+            	return true;
+            case R.id.action_bar_set_origin:
+            	setOrigin();            	
+            	return true;
+            case R.id.action_bar_plot_points:
+            	plotPoints();
+            	return true;
+            case R.id.action_bar_set_scale:
+            	setScale();            	
+            	return true;
+            default:
+            	//Probably plotting points can be done here by interpretting the input event 
+            	
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    
+    public void setOrigin()
+    {
+    	
+    }
+    
+    public void plotPoints()
+    {
+    	plottingPoints = !plottingPoints;
+    }
+    
+    public void setScale()
+    {
+    	
+    }
+    
+    public void reverseLastAction()
+    {
+    	
+    }
+    
+    public int getWidth()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.x;
+	}
+	
+	public int getHeight()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.y;
+	}
+    
+    public void openPreferences()
+    {
+    	Intent intent = new Intent(this, PreferencesActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, NAME_ACTIVITY_MAIN);
+        startActivity(intent);
+    }
+
+    public void openGraphs(/*View view*/)
+    {
+    	Intent intent = new Intent(this, GraphingActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, "Unneeded_Method");
+        startActivity(intent);
+    }
+}

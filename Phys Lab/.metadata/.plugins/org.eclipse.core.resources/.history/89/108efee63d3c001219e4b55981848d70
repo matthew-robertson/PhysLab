@@ -1,0 +1,30 @@
+package project;
+
+import utils.graphing.GraphableObjectContainer;
+
+public class Project
+{
+	private OptionsObject options;
+	//public GraphableObjectContainer graphable;
+	
+	public Project()
+	{
+		options = new OptionsObject();
+	}
+	
+	public Project(OptionsObject options)
+	{
+		this.options = options;
+	}
+	
+	public OptionsObject getOptions()
+	{
+		return options;
+	}	
+	
+	public Project setOptions(OptionsObject options)
+	{
+		this.options = options;
+		return this;
+	}
+}	

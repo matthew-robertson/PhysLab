@@ -1,0 +1,245 @@
+package gui.activities;
+
+import java.io.File;
+import java.util.Random;
+
+import project.Project;
+import utils.action.Action;
+import utils.action.ActionAdd;
+import utils.action.ActionDelete;
+import utils.action.EnumAction;
+import utils.graphing.Point;
+import utils.preferences.ChooseProjectDialog;
+import utils.preferences.EnumDialogOptions;
+import utils.preferences.NoticeDialogFragment;
+import utils.preferences.VideoConfirmDialogFragment;
+import android.app.Activity;
+import android.app.DialogFragment;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.view.Menu;
+import android.view.MenuItem;
+
+public class VideoActivity extends Activity 
+		implements VideoConfirmDialogFragment.VideoConfirmDialogListener, ChooseProjectDialog.ChooseProjectDialogListener
+{
+	public final static String MAIN_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String NAME_ACTIVITY_MAIN = "main_activity";
+	public static Project mainProject;
+	private boolean plottingPoints;
+	private Menu menu;
+	
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_video);
+        PreferenceManager.setDefaultValues(this, R.xml.preferences_menu, false);
+        mainProject = new Project();
+        plottingPoints = false;
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) 
+    {
+        getMenuInflater().inflate(R.menu.activity_video, menu);
+        this.menu = menu;
+        return true;
+    }
+    
+    public boolean onOptionsItemSelected(MenuItem item) 
+    {
+        // Handle item selection
+        switch (item.getItemId()) 
+        {
+            case R.id.preferences_item:
+            	openPreferences();
+                return true;
+            case R.id.action_bar_graph:
+            	openGraphs();
+            	return true;
+            case R.id.action_bar_undo:
+            	reverseLastAction();
+            	return true;
+            case R.id.action_bar_set_origin:
+            	setOrigin();            	
+            	return true;
+            case R.id.action_bar_plot_points:
+            	plotPoints();
+            	return true;
+            case R.id.action_bar_set_scale:
+            	setScale();            	
+            	return true;
+            case R.id.action_bar_save_video:
+            	saveProject();
+            	return true;
+            case R.id.action_bar_open_project_video:
+            	beginOpeningProject();
+            	return true;
+            case R.id.action_bar_new_project_video:
+            	newProject();
+            	return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    
+    private String[] queryForFilesInternally()
+    {
+    	File[] files = getFilesDir().listFiles();
+    	String[] strings = new String[files.length];
+    	for(int i = 0; i < strings.length; i++)
+    	{
+    		strings[i] = files[i].toString();
+    	}
+    	return null;
+    }
+    
+    private String[] queryForFilesExternally()
+    {
+    	if(mainProject.isExternalStorageWritable())
+    	{
+	    	File[] files = getExternalFilesDir(null).listFiles();
+	    	String[] strings = new String[files.length];
+	    	for(int i = 0; i < strings.length; i++)
+	    	{
+	    		strings[i] = files[i].toString();
+	    	}
+	    	return strings;
+    	}
+    	
+    	return new String[] { };
+    }
+    
+    public void beginOpeningProject()
+    {
+    	String[] mergedFilePaths;
+    	String[] internal = queryForFilesInternally();
+    	String[] external = queryForFilesExternally();
+    	mergedFilePaths = new String[internal.length + external.length];
+    	
+    	DialogFragment newFragment = new ChooseProjectDialog(mergedFilePaths, internal.length - 1);
+	    newFragment.show(getFragmentManager(), "open_project");    	
+    }
+    
+    public void newProject()
+    {
+    	DialogFragment newFragment = new VideoConfirmDialogFragment();
+	    newFragment.show(getFragmentManager(), "new_project");    	
+    }
+    
+    public void onDialogPositiveClick(DialogFragment dialog, String message) 
+	{
+    	//Confirm new 
+    	mainProject = new Project();
+	}
+
+	public void onDialogNegativeClick(DialogFragment dialog, String message) 
+	{
+	}
+    
+	public void openProject(DialogFragment dialog, String filePath, boolean storedInternally)
+	{
+		Project proj = mainProject.load(this, filePath, storedInternally);
+		
+		//Add a confirm dialog somewhere earlier? maybe for saving or something.
+		
+		mainProject = proj;
+	}
+	
+    public void setOrigin()
+    {
+    	if(mainProject.getOptions().getPointCount() > 0)
+    	{
+    		Point point = mainProject.getOptions().removeLastPoint();
+    		mainProject.getActionStack().push(new ActionDelete().setAssociatedObject(point));
+    		System.out.println("Removing Last Point (hopefully)");
+    	}
+    }
+    
+    public void plotPoints()
+    {
+    	plottingPoints = !plottingPoints;
+    	if(plottingPoints)
+    	{
+    		MenuItem item = menu.findItem(R.id.action_bar_plot_points);
+    		item.setTitle(getString(R.string.action_bar_plot_points_start));
+    	}
+    	else
+    	{
+    		MenuItem item = menu.findItem(R.id.action_bar_plot_points);
+    		item.setTitle(getString(R.string.action_bar_plot_points_stop));
+    	}    	
+    }
+    
+    public void setScale()
+    {
+    	Random random = new Random();
+    	Point point = new Point(random.nextInt(100), random.nextInt(100));
+    	mainProject.getOptions().registerPoint(point);
+    	mainProject.getActionStack().push(new ActionAdd());
+    	System.out.println("Adding new point (hopefully)");
+    }
+    
+    public void saveProject()
+    {
+    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+    	boolean saveInternally = prefs.getBoolean("preference_default_save_option", false);
+    	mainProject.save(this, saveInternally);
+    }
+    
+    public void reverseLastAction()
+    {
+    	//Check to make sure there's actually a queue event
+    	if(mainProject.getActionStack().size() > 0)
+    	{
+    		Action action = mainProject.getActionStack().pop();
+    		String description = action.getDescription();
+    		//Last action was adding a point... so remove it
+    		if(description.equals(EnumAction.ACTION_ADD_POINT.actionValue))
+    		{
+    			if(mainProject.getOptions().getPointCount() > 0)
+    	    	{
+    	    		Point point = mainProject.getOptions().removeLastPoint();
+    	    		System.out.println("Removing Last Point (hopefully)");
+    	    	}
+    		}
+    		if(description.equals(EnumAction.ACTION_DELETE_POINT.actionValue))
+    		{
+    			mainProject.getOptions().registerPoint((Point)(action.getAssociatedObject()));
+    		}
+    	}
+    }
+    
+    public int getWidth()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.x;
+	}
+	
+	public int getHeight()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.y;
+	}
+    
+    public void openPreferences()
+    {
+    	Intent intent = new Intent(this, PreferencesActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, NAME_ACTIVITY_MAIN);
+        startActivity(intent);
+    }
+
+    public void openGraphs(/*View view*/)
+    {
+    	Intent intent = new Intent(this, GraphingActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, "Unneeded_Method");
+        startActivity(intent);
+    }
+
+	
+}

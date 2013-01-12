@@ -1,0 +1,14 @@
+package utils.action;
+
+public enum EnumAction 
+{
+	
+	;
+	
+	EnumAction(String str)
+	{
+		this.actionValue = str;
+	}
+	
+	private String actionValue;
+}

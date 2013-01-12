@@ -1,0 +1,190 @@
+package project;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
+import utils.action.StackAction;
+import utils.graphing.GraphUtils;
+import utils.graphing.GraphableObjectContainer;
+import utils.graphing.Point;
+import android.content.Context;
+import android.os.Environment;
+
+public class Project
+		implements Serializable
+{
+	private static final long serialVersionUID = 1L;
+	private OptionsObject options;
+	public GraphableObjectContainer graphable;
+	private StackAction actionStack;
+	private static final int ACTION_QUEUE_SIZE = 20;
+	private String projectName;
+	private final static String EXTERNAL_BASE_PATH = "/Phys Lab";
+	
+	public Project()
+	{
+		actionStack = new StackAction(ACTION_QUEUE_SIZE);
+		options = new OptionsObject();
+		graphable = new GraphableObjectContainer();
+		projectName = "New Project";
+	}
+	
+	public Project(OptionsObject options, GraphableObjectContainer graphable, String projectName)
+	{
+		this.actionStack = new StackAction(ACTION_QUEUE_SIZE);
+		this.options = options;
+		this.graphable = graphable;
+		this.projectName = projectName;
+	}
+	
+	public void updateGraphable()
+	{
+		GraphUtils utils = new GraphUtils();
+		Point[] points = options.getPointsAsArray();
+		graphable = utils.convertRawDataToGraphable(points);
+		System.out.println("Breakpoint");
+	}
+	
+	public StackAction getActionStack()
+	{
+		return actionStack;
+	}
+	
+	public String getProjectName()
+	{
+		return projectName;
+	}
+	
+	public void setProjectName(String str)
+	{
+		this.projectName = str;
+	}
+	
+	public GraphableObjectContainer getGraphable()
+	{
+		return graphable;
+	}
+	
+	public Project setGraphable(GraphableObjectContainer graphable)
+	{
+		this.graphable = graphable;
+		return this;
+	}
+	
+	public OptionsObject getOptions()
+	{
+		return options;
+	}	
+
+	public Project setOptions(OptionsObject options)
+	{
+		this.options = options;
+		return this;
+	}
+	
+	/**
+	 * Checks if external storage is available for read and write 
+	 */
+	public boolean isExternalStorageWritable() 
+	{
+	    String state = Environment.getExternalStorageState();
+	    if (Environment.MEDIA_MOUNTED.equals(state)) {
+	        return true;
+	    }
+	    return false;
+	}
+	
+	public String save(boolean saveInternally)
+	{
+		try
+		{
+			boolean externalAvailable = isExternalStorageWritable();
+			
+			if(!saveInternally && !externalAvailable)
+			{
+				return "ERROR: External Disk not writable";
+			}
+			else if(!saveInternally && externalAvailable)
+			{
+				saveFileExternally();
+			}
+			else if(saveInternally)
+			{
+				saveFileInternally();
+			}
+		}
+		catch(Exception e) //Something's gone wrong. return appropriate error message.
+		{
+			return "ERROR: " + e.toString();
+		}
+		return "ERROR: Unknown write error";
+	}
+	
+	private void saveFileInternally(Context context) 
+			throws IOException
+	{
+		String fileName = context.getFilesDir() + "/" + projectName + ".physdat";
+
+		GZIPOutputStream fileWriter = new GZIPOutputStream(new FileOutputStream(fileName)); //Open an output stream
+	    ByteArrayOutputStream bos = new ByteArrayOutputStream(); //Convert world to byte[]
+		ObjectOutputStream s = new ObjectOutputStream(bos); //open the OOS, used to save serialized objects to file
+		s.writeObject(this); //write the byte[] to the OOS
+		byte data[] = bos.toByteArray();
+		fileWriter.write(data, 0, data.length); //Actually save it to file
+		
+		s.close();
+		bos.close();
+		fileWriter.close();     
+		
+	}
+	
+	private void saveFileExternally(Context context) 
+			throws FileNotFoundException, IOException
+	{
+		String fileName = context.getExternalFilesDir(null) + "/" + projectName + ".physdat";
+
+		GZIPOutputStream fileWriter = new GZIPOutputStream(new FileOutputStream(fileName)); //Open an output stream
+	    ByteArrayOutputStream bos = new ByteArrayOutputStream(); //Convert world to byte[]
+		ObjectOutputStream s = new ObjectOutputStream(bos); //open the OOS, used to save serialized objects to file
+		s.writeObject(this); //write the byte[] to the OOS
+		byte data[] = bos.toByteArray();
+		fileWriter.write(data, 0, data.length); //Actually save it to file
+		
+		s.close();
+		bos.close();
+		fileWriter.close();     
+	}
+
+	//Probably the wrong place to put this
+	private Object loadFile(Context context, boolean internallyStored, String projectName) 
+			throws IOException, ClassNotFoundException
+	{
+		if(internallyStored)
+		{
+			String fileName = context.getFilesDir() + "/" + projectName + ".physdat";
+			ObjectInputStream ois = new ObjectInputStream(new DataInputStream(new GZIPInputStream(new FileInputStream(fileName)))); //Open an input stream
+			Project proj = (Project)ois.readObject(); //Load the object
+			ois.close();			
+			return proj;
+		}
+		else
+		{
+			String fileName = context.getExternalFilesDir(null) + "/" + projectName + ".physdat";
+			ObjectInputStream ois = new ObjectInputStream(new DataInputStream(new GZIPInputStream(new FileInputStream(fileName)))); //Open an input stream
+			Project proj = (Project)ois.readObject(); //Load the object
+			ois.close();			
+			return proj;
+		}
+
+		return null;
+	}
+}	

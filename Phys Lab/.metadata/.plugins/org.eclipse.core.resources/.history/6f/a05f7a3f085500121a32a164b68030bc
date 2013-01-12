@@ -1,0 +1,765 @@
+package gui.activities;
+
+import java.io.File;
+
+import project.Project;
+import utils.action.Action;
+import utils.action.ActionAdd;
+import utils.action.EnumAction;
+import utils.graphing.Boundary;
+import utils.graphing.Point;
+import utils.preferences.ChooseProjectDialog;
+import utils.preferences.VideoConfirmDialogFragment;
+import android.app.Activity;
+import android.app.DialogFragment;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.view.GestureDetector;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.ImageView.ScaleType;
+import android.widget.RelativeLayout;
+
+public class VideoActivity extends Activity 
+		implements VideoConfirmDialogFragment.VideoConfirmDialogListener, ChooseProjectDialog.ChooseProjectDialogListener,
+		 GestureDetector.OnGestureListener,
+         GestureDetector.OnDoubleTapListener
+{
+	public final static String MAIN_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String NAME_ACTIVITY_MAIN = "main_activity";
+	public static Project mainProject;
+	private boolean plottingPoints;
+	private Menu menu;
+	private GestureDetector mDetector; 
+	private boolean isSettingOrigin;
+	final int TOP_PADDING = 75;	
+	final int AXIS_SIZE = 7; // half the actual size (reduces math)
+	private boolean isSettingScaleLeft;
+	private boolean isSettingScaleRight;
+	private Boundary scaleBoundary;
+	final int SCALE_SIZE = 5;
+	
+	//DEBUG VARIABLES
+	private boolean firstLaunch = true;
+	//END DEBUG
+	
+	//TODO: more undo options (like origin/scale!)
+	
+	/**
+	 * Probable issues: Project Swapping.
+	 * 		Known Issue: Preferences dont update appropriately. They do get updated when a new project is created.
+	 * 		[Test] See if the saving issue (where the project was always the default) has been fixed with the oncreate() change.
+	 */
+	
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_video);        
+        plottingPoints = false;
+        // Instantiate the gesture detector with the
+        // application context and an implementation of
+        // GestureDetector.OnGestureListener
+        mDetector = new GestureDetector(this,this);
+        // Set the gesture detector as the double tap
+        // listener.
+        mDetector.setOnDoubleTapListener(this);
+        
+        if(firstLaunch)
+        {
+        	mainProject = new Project(this);
+        	firstLaunch = false;
+        }        
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) 
+    {
+        getMenuInflater().inflate(R.menu.activity_video, menu);
+        this.menu = menu;
+        return true;
+    }
+    
+    public boolean onOptionsItemSelected(MenuItem item) 
+    {
+        // Handle item selection
+        switch (item.getItemId()) 
+        {
+            case R.id.preferences_item:
+            	openPreferences();
+                return true;
+            case R.id.action_bar_graph:
+            	openGraphs();
+            	return true;
+            case R.id.action_bar_undo:
+            	reverseLastAction();
+            	return true;
+            case R.id.action_bar_set_origin:
+            	setOrigin();            	
+            	return true;
+            case R.id.action_bar_plot_points:
+            	plotPoints();
+            	return true;
+            case R.id.action_bar_set_scale:
+            	setScale();            	
+            	return true;
+            case R.id.action_bar_save_video:
+            	saveProject();
+            	return true;
+            case R.id.action_bar_open_project_video:
+            	beginOpeningProject();
+            	return true;
+            case R.id.action_bar_new_project_video:
+            	newProject();
+            	return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    
+    private String[] queryForFilesInternally()
+    {
+    	File[] files = getFilesDir().listFiles();
+    	String[] strings = new String[files.length];
+    	for(int i = 0; i < strings.length; i++)
+    	{
+    		strings[i] = trimFilepath(files[i].toString());
+    	}
+    	return strings;
+    }
+    
+    private String[] queryForFilesExternally()
+    {
+    	if(mainProject.isExternalStorageWritable())
+    	{
+	    	File[] files = getExternalFilesDir(null).listFiles();
+	    	String[] strings = new String[files.length];
+	    	for(int i = 0; i < strings.length; i++)
+	    	{
+	    		strings[i] = trimFilepath(files[i].toString());
+	    	}
+	    	return strings;
+    	}
+    	
+    	return new String[] { };
+    }
+    
+    public String trimFilepath(String path)
+    {
+    	return path.substring(path.lastIndexOf("/") + 1, path.indexOf(".physdat"));
+    }
+    
+    public void beginOpeningProject()
+    {
+    	String[] mergedFilePaths;
+    	String[] internal = queryForFilesInternally();
+    	String[] external = queryForFilesExternally();
+    	mergedFilePaths = new String[internal.length + external.length];
+    	
+    	for(int i = 0; i < internal.length; i++)
+    	{
+    		mergedFilePaths[i] = internal[i];
+    	}
+    	for(int i = 0; i < external.length; i++)
+    	{
+    		mergedFilePaths[internal.length + i] = external[i];
+    	}
+    	
+    	DialogFragment newFragment = new ChooseProjectDialog(mergedFilePaths, internal.length - 1);
+	    newFragment.show(getFragmentManager(), "open_project");    	
+    }
+    
+    public void newProject()
+    {
+    	DialogFragment newFragment = new VideoConfirmDialogFragment();
+	    newFragment.show(getFragmentManager(), "new_project");    	
+    }
+    
+    public void onDialogPositiveClick(DialogFragment dialog, String message) 
+	{
+    	//Confirm new 
+    	mainProject = new Project(this);
+	}
+
+	public void onDialogNegativeClick(DialogFragment dialog, String message) 
+	{
+	}
+    
+	public void openProject(DialogFragment dialog, String filePath, boolean storedInternally)
+	{
+		Project proj = mainProject.load(this, filePath, storedInternally);
+		
+		//Add a confirm dialog somewhere earlier? maybe for saving or something.
+		if(proj != null)
+		{
+			mainProject = proj;
+		}
+	
+	
+	}
+	
+	//Move this to the project
+	Point origin;
+	
+	public void displayOrigin(float x, float y)
+	{
+		origin = new Point(x, y);
+		
+		ImageView imageHA = (ImageView) findViewById(R.id.image_view_vertical_axis);
+		ImageView imageVA = (ImageView) findViewById(R.id.image_view_horizontal_axis);
+		ImageView imageO = (ImageView) findViewById(R.id.image_view_origin);
+    	
+		imageHA.setVisibility(View.VISIBLE);
+		imageVA.setVisibility(View.VISIBLE);
+		imageO.setVisibility(View.VISIBLE);
+		
+		
+		System.out.println(getWidth() + "   ," + getHeight());
+		
+		imageHA.layout(0, (int)y - AXIS_SIZE - TOP_PADDING, (int)getWidth(), (int)y + AXIS_SIZE - TOP_PADDING);
+		imageVA.layout((int)x - AXIS_SIZE, 0, (int)x + AXIS_SIZE, getHeight());
+		imageO.layout((int)x - AXIS_SIZE, (int)y - AXIS_SIZE - TOP_PADDING, (int)x + AXIS_SIZE, (int)y + AXIS_SIZE - TOP_PADDING);
+		
+		
+		isSettingOrigin = false;
+	}
+	
+    public void setOrigin()
+    {
+    	//action_bar_set_origin
+    
+    	final String POSITIVE_MESSAGE = "Set Origin";
+    	final String NEGATIVE_MESSAGE = "Cancel Set Origin";
+    	
+    	MenuItem item = (MenuItem)(findViewById(R.id.action_bar_set_origin));
+    	
+    	item.setTitle((isSettingOrigin) ? POSITIVE_MESSAGE : NEGATIVE_MESSAGE);
+    	
+		isSettingOrigin = !isSettingOrigin;    	
+    	
+    	
+    	/*
+    	if(mainProject.getOptions().getPointCount() > 0)
+    	{
+    		Point point = mainProject.getOptions().removeLastPoint();
+    		mainProject.getActionStack().push(new ActionDelete().setAssociatedObject(point));
+    		System.out.println("Removing Last Point (hopefully)");
+    	}
+    	*/
+    }
+    
+    /**
+     * Mouse click inside where the origin in.
+     * @return
+     */
+    public boolean isInOriginBounds(float x, float y)
+    {
+    	if(origin != null)
+    	{
+    		if(x > (origin.getX() - AXIS_SIZE) &&
+    			x < (origin.getX() + AXIS_SIZE) &&
+    			y > (origin.getY() - AXIS_SIZE) &&
+    			y < (origin.getY() + AXIS_SIZE))
+    		{
+    			return true;
+    		}
+    	}  	
+    	
+    	return false;
+    }
+    
+    public void plotPoints()
+    {
+    	plottingPoints = !plottingPoints;
+    	if(plottingPoints)
+    	{
+    		MenuItem item = menu.findItem(R.id.action_bar_plot_points);
+    		item.setTitle(getString(R.string.action_bar_plot_points_start));
+    	}
+    	else
+    	{
+    		MenuItem item = menu.findItem(R.id.action_bar_plot_points);
+    		item.setTitle(getString(R.string.action_bar_plot_points_stop));
+    	}    	
+    }
+    
+    public void addPoint(int x, int y)
+    {
+    	Point point = new Point(x, y);
+    	mainProject.getOptions().registerPoint(point);
+    	mainProject.getActionStack().push(new ActionAdd());
+    	System.out.println("Adding new point (hopefully) @" + x + "," + y);
+    }
+    
+    public void setScale()
+    {
+    	ImageView image = (ImageView) findViewById(R.id.image_view_scale);//new ImageView(this);
+    //	imageView.setImageResource(R.drawable.origin);
+ 
+    	//TODO: Make this code less stupid. IE bound safe. Seriously.
+    	//TODO: Reset Scale/Origin
+    	
+    	image.setVisibility(View.VISIBLE);
+    	//image.setScaleType(ScaleType.MATRIX);   //required
+			 
+    	if(scaleBoundary == null)
+    	{
+    		double left = (getWidth() * 0.5) - (getWidth() * 0.25);
+			double top = (getHeight() * 0.5) - 20;
+			double right = (getWidth() * 0.5) + (getWidth() * 0.25);
+			double bottom = (getHeight() * 0.5) + 20;
+			
+    		scaleBoundary = new Boundary(new Point[] {
+    									 	new Point(left, top),
+    									 	new Point(right, top),
+    									 	new Point(right, bottom),
+    									 	new Point(left, bottom) 
+    									 });
+    	
+    		image.layout((int)left, (int)top, (int)right, (int)bottom);
+        	myImg = BitmapFactory.decodeResource(getResources(), R.drawable.scale);
+    	}
+    }
+    
+    public boolean isInScaleLeftBounds(float x, float y)
+    {
+    	return (scaleBoundary == null) ? false : scaleBoundary.isInLeftBounds(x, y);
+    }
+    
+    public boolean isInScaleRightBounds(float x, float y)
+    {
+    	return (scaleBoundary == null) ? false : scaleBoundary.isInRightBounds(x, y);
+    }    
+    
+    public void saveProject()
+    {
+    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+    	boolean saveInternally = prefs.getBoolean("preference_default_save_option", false);
+    	mainProject.save(this, saveInternally);
+    }
+    
+    public void reverseLastAction()
+    {
+    	//Check to make sure there's actually a queue event
+    	if(mainProject.getActionStack().size() > 0)
+    	{
+    		Action action = mainProject.getActionStack().pop();
+    		String description = action.getDescription();
+    		//Last action was adding a point... so remove it
+    		if(description.equals(EnumAction.ACTION_ADD_POINT.actionValue))
+    		{
+    			if(mainProject.getOptions().getPointCount() > 0)
+    	    	{
+    	    		Point point = mainProject.getOptions().removeLastPoint();
+    	    		System.out.println("Removing Last Point (hopefully)");
+    	    	}
+    		}
+    		if(description.equals(EnumAction.ACTION_DELETE_POINT.actionValue))
+    		{
+    			mainProject.getOptions().registerPoint((Point)(action.getAssociatedObject()));
+    		}
+    	}
+    }
+    
+    public int getWidth()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.x;
+	}
+	
+	public int getHeight()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.y;
+	}
+    
+    public void openPreferences()
+    {
+    	Intent intent = new Intent(this, PreferencesActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, NAME_ACTIVITY_MAIN);
+        startActivity(intent);
+    }
+
+    public void openGraphs(/*View view*/)
+    {
+    	Intent intent = new Intent(this, GraphingActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, "Unneeded_Method");
+        startActivity(intent);
+    }
+
+	@Override
+	public boolean onDoubleTap(MotionEvent arg0) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public boolean onSingleTapConfirmed(MotionEvent e) 
+	{
+		if(mainProject == null)
+		{
+			//Should Register an Error
+		}		
+		
+		//There is padding of 75 px at the top (so 0, 75) is basically (0,0) of the useable area.
+		//usable area is therefore 320x405
+		float x = e.getRawX();
+		float y = e.getRawY() - TOP_PADDING;
+		System.out.println("Single_Tap_Confirmed @(" + x + "," + y + ")");
+		
+		//Possibly move this to the touch event (so it can be a double click)
+		if(isSettingOrigin)
+		{
+			displayOrigin(x, y);
+		}
+		else if(isInOriginBounds(x, y)) //If the origin center point is clicked, lets the axis-be reset.
+		{
+			//Consider removing this unless it changes the cursor. Could be annoying or wierd to not know it's active.
+			//Maybe toggle the menu item? 
+			isSettingOrigin = true;
+		}
+		
+		if(plottingPoints)
+		{
+			final int SIZE = 4;
+			ImageView image = new ImageView(this);
+			image.setImageResource(R.drawable.point);
+	//		image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+			image.setAdjustViewBounds(true);
+			//image.layout((int)x - SIZE, (int)y - SIZE, (int)x + SIZE, (int)y + SIZE);
+			mainProject.getOptions().registerPoint(new Point(x, y, image));
+			
+			// TODO: Set LayoutParams for each imageView
+			// i.e.
+			/*
+			RelativeLayout.LayoutParams imageParams1 = new RelativeLayout.LayoutParams(SIZE * 2, SIZE * 2); 
+			imageParams1.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+			imageParams1.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+*/
+			
+			//LinearLayout.LayoutParams imageParams2 = new LinearLayout.LayoutParams(SIZE * 2, SIZE * 2);
+			//imageParams2.setMargins((int)x - SIZE, (int)y - SIZE, (int)x + SIZE, (int)y + SIZE);
+		//	imageParams2.gravity = 0x11;
+		//	
+			//FrameLayout fLayout = (FrameLayout)(this.findViewById(android.R.id.content));
+			RelativeLayout rLayout = (RelativeLayout)(findViewById(R.id.activity_video_relative_layout));
+			
+			//LayoutInflater li = LayoutInflater.from(this);
+			
+			//RelativeLayout mRelativeLayout = (RelativeLayout) findViewById(R.id.board);
+			//ImageView i = new ImageView(this);
+			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(2 * SIZE, 2 * SIZE);
+			params.leftMargin = (int) x - SIZE;
+			params.topMargin = (int) y - TOP_PADDING - SIZE;
+			
+			
+			rLayout.addView(image, params);
+			
+		//	image.layout(30, 30, 80, 80);
+			//image.layout((int)x - SIZE, (int)y - SIZE, (int)x + SIZE, (int)y + SIZE);
+			
+			
+			//Relative layout
+			//this.findViewById(android.R.id.content);
+			
+			
+			/**
+			Important Code:
+				Remove an image(view) code:
+				rLayout.removeView(image);
+			*/
+		
+		}
+		
+		//Confirmed to not be a double click
+		
+		
+		return false;
+	}
+
+	private final int TICKS_PER_SECOND = 20;
+	private final int SKIP_TICKS = 1000 / TICKS_PER_SECOND;
+	private final int MAX_FRAMESKIP = 200000000;//5;
+	private long next_game_tick = System.currentTimeMillis();
+	private int loops;
+	
+	public boolean onDown(MotionEvent e) 
+	{
+		//"Mouse Down"
+
+		if(mainProject == null || scaleBoundary == null)
+		{
+			//Should Register an Error
+			return false;
+		}	
+		
+		float x = e.getRawX();
+		float y = e.getRawY() - TOP_PADDING;
+		System.out.println("on_down@(" + x + "," + y + ")");
+		
+		//System.out.println(isInScaleLeftBounds(x, y) + ", " + isInScaleRightBounds(x, y) + " " + scaleBoundary.left + " " + 
+		//		scaleBoundary.right + " " + scaleBoundary.top + " " + scaleBoundary.bottom);
+		
+		if(isInScaleLeftBounds(x, y))
+		{
+			isSettingScaleLeft = true;
+		}
+		if(isInScaleRightBounds(x, y))
+		{
+			isSettingScaleRight = true;
+		}
+		
+		System.out.println("on_down@" + isSettingScaleLeft + ", " + isSettingScaleRight);
+		
+		return false;
+	}
+
+	public boolean onSingleTapUp(MotionEvent arg0)
+	{
+		if(mainProject == null)
+		{
+			//Should Register an Error
+		}		
+		
+		//"Mouse release?"
+		
+		isSettingScaleRight = false;
+		isSettingScaleLeft = false;
+		
+		
+		return false;
+	}
+	
+	Bitmap myImg; 
+
+	/**
+	 * @deprecated
+	 */
+	public void onScrollStuffThatMayLaterMatter()
+	{
+		ImageView image = (ImageView) findViewById(R.id.image_view_scale);
+		
+		//		System.out.println(x + ", ," + y);
+				//scaleBoundary.left += 2;
+				//scaleBoundary.top += 2;
+//				scaleBoundary.rotationAngle += 1.0f;
+			//	image.layout((int)scaleBoundary.left, (int)scaleBoundary.top, (int)scaleBoundary.right, (int)scaleBoundary.bottom);
+				
+			//	RotateAnimation anim = new RotateAnimation(0, (float) scaleBoundary.rotationAngle, (int)scaleBoundary.leftPivotPoint.getX(), (int)scaleBoundary.leftPivotPoint.getY());
+				
+				//image.layout((int)scaleBoundary.left, (int)scaleBoundary.top, (int)scaleBoundary.right, (int)scaleBoundary.bottom);
+			    
+			    //Matrix matrix = new Matrix();
+			    //matrix.setTranslate((int)scaleBoundary.leftPivotPoint.getX(), (int)scaleBoundary.leftPivotPoint.getY());
+			    //matrix.postRotate(scaleBoundary.rotationAngle, (int)scaleBoundary.leftPivotPoint.getX(), (int)scaleBoundary.leftPivotPoint.getY());
+			     ///image.setImageMatrix(matrix);
+			    
+			    //matrix.postRotate(scaleBoundary.rotationAngle)//;, (float) scaleBoundary.rotationAngle, (int)scaleBoundary.leftPivotPoint.getX(), (int)scaleBoundary.leftPivotPoint.getY());
+
+				/*
+		    	// create new matrix
+				Matrix matrix = new Matrix();
+				image.setScaleType(ScaleType.MATRIX);
+				// setup rotation degree
+				matrix.postRotate(scaleBoundary.rotationAngle);
+			    Bitmap img2 = Bitmap.createBitmap(myImg, 0, 0, myImg.getWidth(), myImg.getHeight(), matrix, true);
+			    
+			    image.setImageBitmap(img2);//, (int)scaleBoundary.leftPivotPoint.getX(), (int)scaleBoundary.leftPivotPoint.getY());
+			    
+			    //The img2.get...() is a bit of a bandage fix. perhaps this needs fixed?
+			    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(img2.getWidth(), img2.getHeight());
+			    params.leftMargin = (int) scaleBoundary.left;
+			    params.topMargin = (int) scaleBoundary.top;
+			    
+			    //move the image to where it should be... not (0, 0)
+			    RelativeLayout rl = (RelativeLayout)findViewById(R.id.activity_video_relative_layout);
+			    rl.removeView(image);
+			    rl.addView(image, params);
+			    
+			    */
+			    
+			    //image.layout((int)scaleBoundary.left, (int)scaleBoundary.top, (int)scaleBoundary.right, (int)scaleBoundary.bottom);
+			    
+					// return new bitmap rotated using matrix
+					
+			    
+			    /*
+			    Matrix matrix = new Matrix();
+			    //matrix.setTranslate((int)scaleBoundary.leftPivotPoint.getX(), (int)scaleBoundary.leftPivotPoint.getY());
+			    matrix.postRotate(scaleBoundary.rotationAngle, (int)scaleBoundary.leftPivotPoint.getX(), (int)scaleBoundary.leftPivotPoint.getY());
+			    
+			    Bitmap rot = Bitmap.createBitmap(myImg, 0, 0, myImg.getWidth(), myImg.getHeight(),
+			            matrix, true);
+
+			    image.setImageBitmap(rot);    
+			    */
+			    
+			    
+			    //Bitmap rot = Bitmap.createBitmap(myImg, 0, 0, myImg.getWidth(), myImg.getHeight(), matrix, true);
+			    //image.setImageBitmap(rot);  
+
+//				image.layout((int)scaleBoundary.left, (int)scaleBoundary.top, (int)scaleBoundary.right, (int)scaleBoundary.bottom);
+
+				//Matrix matrix = new Matrix();
+				
+			    
+				//matrix.postRotate((float) scaleBoundary.rotationAngle, (int)scaleBoundary.leftPivotPoint.getX(), (int)scaleBoundary.leftPivotPoint.getY());
+				//image.setImageMatrix(matrix);
+				
+				//image.setScaleType(ScaleType.FIT_CENTER);
+				
+	}
+	
+	public double angleBetweenTwoVectors(float x1, float y1, float x2, float y2)
+	{
+		//http://www.wikihow.com/Find-the-Angle-Between-Two-Vectors
+		double dotProduct = (x1 * x2) + (y1 * y2);
+		
+		double magnitudeA = Math.sqrt(Math.pow(x1, 2) + Math.pow(y1, 2));
+		double magnitudeB = Math.sqrt(Math.pow(x2, 2) + Math.pow(y2, 2));
+		
+		double answer = dotProduct / (magnitudeA * magnitudeB);
+		
+		return Math.toDegrees(Math.acos(answer));
+	}
+		
+	public double lineLength(int x1, int y1, int x2, int y2)
+	{
+		return Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
+	}
+	
+	public boolean onScroll(MotionEvent e0, MotionEvent e, float arg2, float arg3) 
+	{
+		loops = 0;
+
+		if(System.currentTimeMillis() > next_game_tick && loops < MAX_FRAMESKIP)
+	    {
+			float x = e.getRawX();
+			float y = e.getRawY() - TOP_PADDING;
+			System.out.println("on_scroll@(" + x + "," + y + ")");
+			System.out.println("on_scroll@" + isSettingScaleLeft + ", " + isSettingScaleRight);
+			
+			if(isSettingScaleLeft)
+			{
+				ImageView image = (ImageView) findViewById(R.id.image_view_scale);
+				
+				Point point = scaleBoundary.centerOfRightLine();
+				
+				
+				
+				
+				
+				/*
+				scaleBoundary.rotationAngle = (float)angleBetweenTwoVectors((float)scaleBoundary.rightPivotPoint.getX(), (float)scaleBoundary.rightPivotPoint.getY(), x, y);
+				
+				
+				/**
+				 * Attempted solution (1):
+				 *  Find length of new scale (formula)
+				 *  adjust original box (how far back)
+				 *  find <Between
+				 *  counter rotate the next click to see if it falls in the new bounds.
+				 * 
+				 */
+				/*
+				//x' = x cos f - y sin f
+				//y' = y cos f + x sin f
+				
+				double lineLength = Math.sqrt(Math.pow(x - scaleBoundary.rightPivotPoint.getX(), 2) + Math.pow(y - scaleBoundary.rightPivotPoint.getY(), 2));
+				
+				System.out.println("Rot_ang=" +scaleBoundary.rotationAngle + " line-length=" + lineLength);
+				//adjust left bounds of the rectangle 
+				scaleBoundary.left = (float) (scaleBoundary.right - lineLength);
+				
+				double n_x = x * Math.cos(scaleBoundary.rotationAngle) - y * Math.sin(scaleBoundary.rotationAngle);
+				double n_y = y * Math.cos(scaleBoundary.rotationAngle) + x * Math.sin(scaleBoundary.rotationAngle);
+				
+				System.out.println("scale_bounds_left=" + scaleBoundary.left + " new_x=" + n_x + " new_y=" + n_y);
+				
+				scaleBoundary.fixPivotPoints();
+				
+				
+				
+				
+		    	// create new matrix
+				Matrix matrix = new Matrix();
+				image.setScaleType(ScaleType.MATRIX);
+				// setup rotation degree
+				matrix.postRotate(scaleBoundary.rotationAngle);
+			    Bitmap img2 = Bitmap.createBitmap(myImg, 0, 0, myImg.getWidth(), myImg.getHeight(), matrix, true);
+			    
+			    image.setImageBitmap(img2);//, (int)scaleBoundary.leftPivotPoint.getX(), (int)scaleBoundary.leftPivotPoint.getY());
+			    
+			    //The img2.get...() is a bit of a bandage fix. perhaps this needs fixed?
+			    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(img2.getWidth(), img2.getHeight());
+			    params.leftMargin = (int) scaleBoundary.left;
+			    params.topMargin = (int) scaleBoundary.top;
+			    
+			    //move the image to where it should be... not (0, 0)
+			    RelativeLayout rl = (RelativeLayout)findViewById(R.id.activity_video_relative_layout);
+			    rl.removeView(image);
+			    rl.addView(image, params);			
+			
+			    */
+			
+			}
+			else if(isSettingScaleRight)
+			{
+			//	ImageView image = (ImageView) findViewById(R.id.image_cursor_scale);
+	
+				//scaleBoundary.right = x;
+				//scaleBoundary.bottom = y;
+				//image.layout((int)scaleBoundary.left, (int)scaleBoundary.top, (int)scaleBoundary.right, (int)scaleBoundary.bottom);
+			
+			
+			}
+			
+			next_game_tick += SKIP_TICKS;
+	        loops++;
+	    }
+		
+		return false;
+	}
+	
+	public boolean onDoubleTapEvent(MotionEvent e) 
+	{
+		return false;
+	}
+	
+	public boolean onFling(MotionEvent arg0, MotionEvent arg1, float arg2, float arg3)
+	{
+		return false;
+	}
+
+	public void onLongPress(MotionEvent arg0) 
+	{
+//		System.out.println("OnLongPress");		
+	}
+
+	
+	public void onShowPress(MotionEvent arg0)
+	{
+
+	}
+
+	
+
+	public boolean onTouchEvent(MotionEvent event)
+	{ 
+	   this.mDetector.onTouchEvent(event);	   
+	    //Seems to trip for all mouse events
+	    
+	    // Be sure to call the superclass implementation
+	    return super.onTouchEvent(event);
+	}
+	
+}

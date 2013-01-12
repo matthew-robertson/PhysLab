@@ -1,0 +1,227 @@
+package project;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+import android.widget.RelativeLayout;
+
+import utils.graphing.Point;
+
+public class OptionsObject 
+		implements Serializable
+{
+	private static final long serialVersionUID = 1L;
+	public List<Point> points;
+	private String videoPath;
+	private String projectSaveDirectory;
+	private double graphScale;
+	private double startingDistance;
+	private double startingTime;
+	//private final static String FILEPATH_DEFAULT_SAVE = "FILL THIS IN";
+	private boolean dataChanged;
+	
+	public OptionsObject(List<Point> points, String videoPath, String projectSaveDirectory, double graphScale, double startingDistance, double startingTime)
+	{
+		this.dataChanged = true;
+		this.points = points;
+		this.videoPath = videoPath;
+		this.projectSaveDirectory = projectSaveDirectory;
+		this.graphScale = graphScale;
+		this.startingDistance = startingDistance;
+		this.startingTime = startingTime;
+	}
+
+	public OptionsObject()
+	{
+		this.dataChanged = true;
+		points = new ArrayList<Point>();
+
+		
+		/*
+		//Quadrant 4
+		points.add(new Point(1, -3));
+		points.add(new Point(52, -33));
+		points.add(new Point(3, -74));
+		points.add(new Point(14, -13));
+		points.add(new Point(25, -65));
+		points.add(new Point(46, -98));
+		points.add(new Point(17, -123));
+		//*/
+		/*
+		//Quadrant 2
+		points.add(new Point(-1, 2));
+		points.add(new Point(-2, 4));
+		points.add(new Point(-3, 6));
+		points.add(new Point(-4, 8));
+		points.add(new Point(-5, 10));
+		points.add(new Point(-6, 12));
+		points.add(new Point(-7, 20));
+		//*/
+		/*
+		//Quadrant 3
+		points.add(new Point(-1, -2));
+		points.add(new Point(-2, -4));
+		points.add(new Point(-3, -6));
+		points.add(new Point(-4, -8));
+		points.add(new Point(-5, -10));
+		points.add(new Point(-6, -12));
+		points.add(new Point(-7, -20));
+		//*/
+		
+		/*
+		// All Quadrant
+		points.add(new Point(-1, 2));
+		points.add(new Point(-2, -4));
+		points.add(new Point(3, 6));
+		points.add(new Point(-4, -8));
+		points.add(new Point(5, -10));
+		points.add(new Point(-6, 12));
+		points.add(new Point(7, -20));
+		//*/
+		
+		/*
+		//Quadrant 1
+		points.add(new Point(1, 2));
+		points.add(new Point(2, 4));
+		points.add(new Point(3, 6));
+		points.add(new Point(4, 8));
+		points.add(new Point(5, 10));
+		points.add(new Point(6, 12));
+		//*/
+		videoPath = "";
+		//projectSaveDirectory = FILEPATH_DEFAULT_SAVE;
+		graphScale = 1.0d;
+		startingDistance = 0.0d;
+		startingTime = 0.0d;
+	}
+	
+	public void clearAllPoints(RelativeLayout layout)
+	{
+		for(Point point : points)
+		{
+			if(point.imageView != null && layout != null)
+			{
+				layout.removeView(point.imageView);
+			}
+		}
+		points.clear(); //Or make it new again
+		
+		dataChanged = true;
+	}
+	
+	public void registerPoint(Point point)
+	{
+		points.add(point);
+		dataChanged = true;
+	}
+	
+	public void clearPoint(RelativeLayout layout, int index)
+	{
+		try 
+		{
+			Point point = points.get(index);
+			if(point.imageView != null && layout != null)
+			{
+				layout.removeView(point.imageView);
+			}
+			points.remove(index);
+			
+			dataChanged = true;
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public List<Point> getPoints()
+	{
+		return points;
+	}
+	
+	public Point[] getPointsAsArray()
+	{
+		Point[] newPoints = new Point[points.size()];
+		
+		for(int i = 0; i < points.size(); i++)
+		{
+			newPoints[i] = points.get(i);
+		}
+		
+		return newPoints;
+	}
+	
+	public void setDataChanged(boolean flag)
+	{
+		this.dataChanged = flag;
+	}
+	
+	public void setDataUnchanged()
+	{
+		this.dataChanged = false;
+	}
+	
+	public boolean getDataChanged()
+	{
+		return dataChanged;
+	}
+	
+	public int getPointCount()
+	{
+		return points.size();
+	}	
+	
+	public Point removeLastPoint(RelativeLayout layout)
+	{
+		Point point = null;
+		try
+		{
+			point = points.get(points.size() - 1);
+			
+			if(point.imageView != null && layout != null)
+			{
+				layout.removeView(point.imageView);
+			}
+			
+			points.remove(points.size() - 1);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		return point;
+	}
+}
+
+
+
+
+
+/*
+//probably not a class, will be addition to something else.
+public class DrawGraphs
+{
+	public GraphableObjectContainer graphable;
+	
+	public boolean updateGraphable(GraphableObjectContainer graphable)
+	{
+		this.graphable = graphable;
+	}
+
+	public void onDraw()
+	{
+		//Axis
+		//Axis Labels (inc scale numbers on x/y
+		//+/- Quadrants
+		//Preference? add straight line connections between scatter point dots.
+		//			  >Lines of best fit? Exponential, Linear, Logarithmic, Power
+		//			  >Equation && r^2 value?
+		//Scatter plot -> Plot points. [Done]
+		//Line graph -> Plot points. 
+				//Just Linear Connection?
+	}
+	
+}
+
+*/

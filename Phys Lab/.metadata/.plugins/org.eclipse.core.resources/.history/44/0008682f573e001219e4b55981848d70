@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Action Bar Activity_Graphs Strings -->
+    <string name="action_bar_video">Video</string>
+    <string name="action_bar_graph">Graphs</string>
+    <string name="action_bar_save">Save</string>
+    <string name="action_bar_undo">Undo</string>
+    <string name="action_bar_set_scale">Set Scale</string>
+    <string name="action_bar_set_origin">Set Origin</string>
+    <string name="action_bar_export">Export</string>
+    <string name="action_bar_export_text">Export to .txt</string>
+    <string name="action_bar_export_excel">Export to Excel</string>
+    <string name="title_activity_preferences">PreferencesActivity</string>
+    <string name="action_bar_preferences">Preferences</string>
+
+</resources>

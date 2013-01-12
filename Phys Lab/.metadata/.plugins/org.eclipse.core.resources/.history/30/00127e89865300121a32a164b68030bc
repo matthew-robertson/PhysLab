@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_video_relative_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal" >
+
+   <ImageView
+        android:id="@+id/image_view_horizontal_axis"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+       android:visibility="invisible"
+       
+       android:scaleType="center"
+        android:src="@drawable/shape_axis" />
+        
+    <ImageView
+      android:id="@+id/image_view_vertical_axis"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:visibility="invisible"
+ android:scaleType="center"       
+      android:src="@drawable/shape_axis" />
+      
+    <ImageView
+      android:id="@+id/image_view_origin"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+ android:visibility="invisible"
+ android:scaleType="center"
+        android:src="@drawable/shape_origin" />
+        
+  
+    <ImageView
+      android:id="@+id/image_view_scale"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+ android:visibility="invisible"
+ android:background="@drawable/background"
+        android:src="@drawable/scale" />
+        
+    <!--  
+    <ImageView
+      android:id="@+id/image_cursor_scale"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+ android:visibility="invisible"
+        android:src="@drawable/shape_axis" />
+       --> 
+    
+    <!-- 
+	<EditText
+	    android:id="@+id/edit_message"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:layout_weight="1"
+	    android:hint="@string/edit_message" />
+
+	<Button
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:layout_alignParentLeft="true"
+	    android:layout_below="@+id/edit_message"
+	    android:layout_marginTop="25dp"
+	    android:onClick="sendMessage"
+	    android:text="@string/button_send" />
+ 	-->
+ 
+</LinearLayout>

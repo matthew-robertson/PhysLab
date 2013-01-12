@@ -1,0 +1,454 @@
+package gui.activities;
+
+import java.io.File;
+import java.util.Random;
+
+import project.Project;
+import utils.action.Action;
+import utils.action.ActionAdd;
+import utils.action.ActionDelete;
+import utils.action.EnumAction;
+import utils.graphing.Point;
+import utils.preferences.ChooseProjectDialog;
+import utils.preferences.EnumDialogOptions;
+import utils.preferences.NoticeDialogFragment;
+import utils.preferences.VideoConfirmDialogFragment;
+import android.app.Activity;
+import android.app.DialogFragment;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Rect;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.view.GestureDetector;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.ImageView;
+
+public class VideoActivity extends Activity 
+		implements VideoConfirmDialogFragment.VideoConfirmDialogListener, ChooseProjectDialog.ChooseProjectDialogListener,
+		 GestureDetector.OnGestureListener,
+         GestureDetector.OnDoubleTapListener
+{
+	public final static String MAIN_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String NAME_ACTIVITY_MAIN = "main_activity";
+	public static Project mainProject;
+	private boolean plottingPoints;
+	private Menu menu;
+	private GestureDetector mDetector; 
+	private boolean isSettingOrigin;
+	final int TOP_PADDING = 75;	
+	final int AXIS_SIZE = 7; // half the actual size (reduces math)
+	private boolean isSettingScale;
+	private Rect scaleBounds;
+	
+	/**
+	 * Probable issues: Project Swapping.
+	 * 		Known Issue: Preferences dont update appropriately. They do get updated when a new project is created.
+	 * 		[Test] See if the saving issue (where the project was always the default) has been fixed with the oncreate() change.
+	 */
+	
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_video);        
+        plottingPoints = false;
+        // Instantiate the gesture detector with the
+        // application context and an implementation of
+        // GestureDetector.OnGestureListener
+        mDetector = new GestureDetector(this,this);
+        // Set the gesture detector as the double tap
+        // listener.
+        mDetector.setOnDoubleTapListener(this);
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) 
+    {
+        getMenuInflater().inflate(R.menu.activity_video, menu);
+        this.menu = menu;
+        return true;
+    }
+    
+    public boolean onOptionsItemSelected(MenuItem item) 
+    {
+        // Handle item selection
+        switch (item.getItemId()) 
+        {
+            case R.id.preferences_item:
+            	openPreferences();
+                return true;
+            case R.id.action_bar_graph:
+            	openGraphs();
+            	return true;
+            case R.id.action_bar_undo:
+            	reverseLastAction();
+            	return true;
+            case R.id.action_bar_set_origin:
+            	setOrigin();            	
+            	return true;
+            case R.id.action_bar_plot_points:
+            	plotPoints();
+            	return true;
+            case R.id.action_bar_set_scale:
+            	setScale();            	
+            	return true;
+            case R.id.action_bar_save_video:
+            	saveProject();
+            	return true;
+            case R.id.action_bar_open_project_video:
+            	beginOpeningProject();
+            	return true;
+            case R.id.action_bar_new_project_video:
+            	newProject();
+            	return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    
+    private String[] queryForFilesInternally()
+    {
+    	File[] files = getFilesDir().listFiles();
+    	String[] strings = new String[files.length];
+    	for(int i = 0; i < strings.length; i++)
+    	{
+    		strings[i] = trimFilepath(files[i].toString());
+    	}
+    	return strings;
+    }
+    
+    private String[] queryForFilesExternally()
+    {
+    	if(mainProject.isExternalStorageWritable())
+    	{
+	    	File[] files = getExternalFilesDir(null).listFiles();
+	    	String[] strings = new String[files.length];
+	    	for(int i = 0; i < strings.length; i++)
+	    	{
+	    		strings[i] = trimFilepath(files[i].toString());
+	    	}
+	    	return strings;
+    	}
+    	
+    	return new String[] { };
+    }
+    
+    public String trimFilepath(String path)
+    {
+    	return path.substring(path.lastIndexOf("/") + 1, path.indexOf(".physdat"));
+    }
+    
+    public void beginOpeningProject()
+    {
+    	String[] mergedFilePaths;
+    	String[] internal = queryForFilesInternally();
+    	String[] external = queryForFilesExternally();
+    	mergedFilePaths = new String[internal.length + external.length];
+    	
+    	for(int i = 0; i < internal.length; i++)
+    	{
+    		mergedFilePaths[i] = internal[i];
+    	}
+    	for(int i = 0; i < external.length; i++)
+    	{
+    		mergedFilePaths[internal.length + i] = external[i];
+    	}
+    	
+    	DialogFragment newFragment = new ChooseProjectDialog(mergedFilePaths, internal.length - 1);
+	    newFragment.show(getFragmentManager(), "open_project");    	
+    }
+    
+    public void newProject()
+    {
+    	DialogFragment newFragment = new VideoConfirmDialogFragment();
+	    newFragment.show(getFragmentManager(), "new_project");    	
+    }
+    
+    public void onDialogPositiveClick(DialogFragment dialog, String message) 
+	{
+    	//Confirm new 
+    	mainProject = new Project(this);
+	}
+
+	public void onDialogNegativeClick(DialogFragment dialog, String message) 
+	{
+	}
+    
+	public void openProject(DialogFragment dialog, String filePath, boolean storedInternally)
+	{
+		Project proj = mainProject.load(this, filePath, storedInternally);
+		
+		//Add a confirm dialog somewhere earlier? maybe for saving or something.
+		if(proj != null)
+		{
+			mainProject = proj;
+		}
+	
+	
+	}
+	
+	//Move this to the project
+	Point origin;
+	
+	public void displayOrigin(float x, float y)
+	{
+		origin = new Point(x, y);
+		
+		ImageView imageHA = (ImageView) findViewById(R.id.image_view_vertical_axis);
+		ImageView imageVA = (ImageView) findViewById(R.id.image_view_horizontal_axis);
+		ImageView imageO = (ImageView) findViewById(R.id.image_view_origin);
+    	
+		imageHA.setVisibility(View.VISIBLE);
+		imageVA.setVisibility(View.VISIBLE);
+		imageO.setVisibility(View.VISIBLE);
+		
+		
+		System.out.println(getWidth() + "   ," + getHeight());
+		
+		imageHA.layout(0, (int)y - AXIS_SIZE - TOP_PADDING, (int)getWidth(), (int)y + AXIS_SIZE - TOP_PADDING);
+		imageVA.layout((int)x - AXIS_SIZE, 0, (int)x + AXIS_SIZE, getHeight());
+		imageO.layout((int)x - AXIS_SIZE, (int)y - AXIS_SIZE - TOP_PADDING, (int)x + AXIS_SIZE, (int)y + AXIS_SIZE - TOP_PADDING);
+		
+		
+		isSettingOrigin = false;
+	}
+	
+    public void setOrigin()
+    {
+    	//action_bar_set_origin
+    
+    	final String POSITIVE_MESSAGE = "Set Origin";
+    	final String NEGATIVE_MESSAGE = "Cancel Set Origin";
+    	
+    	MenuItem item = (MenuItem)(findViewById(R.id.action_bar_set_origin));
+    	
+    	item.setTitle((isSettingOrigin) ? POSITIVE_MESSAGE : NEGATIVE_MESSAGE);
+    	
+		isSettingOrigin = !isSettingOrigin;    	
+    	
+    	
+    	/*
+    	if(mainProject.getOptions().getPointCount() > 0)
+    	{
+    		Point point = mainProject.getOptions().removeLastPoint();
+    		mainProject.getActionStack().push(new ActionDelete().setAssociatedObject(point));
+    		System.out.println("Removing Last Point (hopefully)");
+    	}
+    	*/
+    }
+    
+    /**
+     * Mouse click inside where the origin in.
+     * @return
+     */
+    public boolean isInOriginBounds(float x, float y)
+    {
+    	if(origin != null)
+    	{
+    		if(x > (origin.getX() - AXIS_SIZE) &&
+    			x < (origin.getX() + AXIS_SIZE) &&
+    			y > (origin.getY() - AXIS_SIZE) &&
+    			y < (origin.getY() + AXIS_SIZE))
+    		{
+    			return true;
+    		}
+    	}  	
+    	
+    	return false;
+    }
+    
+    
+    public void plotPoints()
+    {
+    	plottingPoints = !plottingPoints;
+    	if(plottingPoints)
+    	{
+    		MenuItem item = menu.findItem(R.id.action_bar_plot_points);
+    		item.setTitle(getString(R.string.action_bar_plot_points_start));
+    	}
+    	else
+    	{
+    		MenuItem item = menu.findItem(R.id.action_bar_plot_points);
+    		item.setTitle(getString(R.string.action_bar_plot_points_stop));
+    	}    	
+    }
+    
+    public void addPoint(int x, int y)
+    {
+    	Point point = new Point(x, y);
+    	mainProject.getOptions().registerPoint(point);
+    	mainProject.getActionStack().push(new ActionAdd());
+    	System.out.println("Adding new point (hopefully) @" + x + "," + y);
+    }
+    
+    public void setScale()
+    {
+    //	ImageView imageView = (ImageView) findViewById(R.id.image_view_test);//new ImageView(this);
+    //	imageView.setImageResource(R.drawable.origin);
+    	
+    	
+    	
+    }
+    
+    public void saveProject()
+    {
+    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+    	boolean saveInternally = prefs.getBoolean("preference_default_save_option", false);
+    	mainProject.save(this, saveInternally);
+    }
+    
+    public void reverseLastAction()
+    {
+    	//Check to make sure there's actually a queue event
+    	if(mainProject.getActionStack().size() > 0)
+    	{
+    		Action action = mainProject.getActionStack().pop();
+    		String description = action.getDescription();
+    		//Last action was adding a point... so remove it
+    		if(description.equals(EnumAction.ACTION_ADD_POINT.actionValue))
+    		{
+    			if(mainProject.getOptions().getPointCount() > 0)
+    	    	{
+    	    		Point point = mainProject.getOptions().removeLastPoint();
+    	    		System.out.println("Removing Last Point (hopefully)");
+    	    	}
+    		}
+    		if(description.equals(EnumAction.ACTION_DELETE_POINT.actionValue))
+    		{
+    			mainProject.getOptions().registerPoint((Point)(action.getAssociatedObject()));
+    		}
+    	}
+    }
+    
+    public int getWidth()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.x;
+	}
+	
+	public int getHeight()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.y;
+	}
+    
+    public void openPreferences()
+    {
+    	Intent intent = new Intent(this, PreferencesActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, NAME_ACTIVITY_MAIN);
+        startActivity(intent);
+    }
+
+    public void openGraphs(/*View view*/)
+    {
+    	Intent intent = new Intent(this, GraphingActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, "Unneeded_Method");
+        startActivity(intent);
+    }
+
+	@Override
+	public boolean onDoubleTap(MotionEvent arg0) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean onDoubleTapEvent(MotionEvent e) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean onSingleTapConfirmed(MotionEvent e) 
+	{
+		//There is padding of 75 px at the top (so 0, 75) is basically (0,0) of the useable area.
+		//usable area is therefore 320x405
+		float x = e.getRawX();
+		float y = e.getRawY();
+		System.out.println("Single_Tap_Confirmed @(" + x + "," + y + ")");
+		
+		//Possibly move this to the touch event (so it can be a double click)
+		if(isSettingOrigin)
+		{
+			displayOrigin(x, y);
+		}
+		else if(isInOriginBounds(x, y)) //If the origin center point is clicked, lets the axis-be reset.
+		{
+			//Consider removing this unless it changes the cursor. Could be annoying or wierd to not know it's active.
+			//Maybe toggle the menu item? 
+			isSettingOrigin = true;
+		}
+		//Confirmed to not be a double click
+		
+		
+		return false;
+	}
+	
+	
+	
+	
+
+	@Override
+	public boolean onDown(MotionEvent arg0) {
+
+		//"Mouse Down"
+		
+		System.out.println("Single Tap -> (Is this a click?)2");
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean onFling(MotionEvent arg0, MotionEvent arg1, float arg2,
+			float arg3) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public void onLongPress(MotionEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean onScroll(MotionEvent arg0, MotionEvent arg1, float arg2,
+			float arg3) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public void onShowPress(MotionEvent arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public boolean onSingleTapUp(MotionEvent arg0) {
+
+		//"Mouse release"
+		
+		System.out.println("Single Tap -> (Is this a click?) 4");
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	 @Override 
+	    public boolean onTouchEvent(MotionEvent event){ 
+	        this.mDetector.onTouchEvent(event);
+	       
+	        //Seems to trip for all mouse events
+	        
+	        System.out.println("A thing!");
+	        // Be sure to call the superclass implementation
+	        return super.onTouchEvent(event);
+	    }
+	
+}

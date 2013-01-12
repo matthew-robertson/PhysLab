@@ -1,0 +1,91 @@
+package gui.activities;
+
+import utils.preferences.EnumDialogOptions;
+import utils.preferences.NoticeDialogFragment;
+import utils.preferences.SettingsFragment;
+import android.app.Activity;
+import android.app.DialogFragment;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.Menu;
+
+public class PreferencesActivity extends Activity 
+		implements NoticeDialogFragment.NoticeDialogListener 
+{
+	private SettingsFragment settingsFragment;
+	
+	public PreferencesActivity()
+	{
+		this.activity = "main_activity";
+	}
+	
+	public PreferencesActivity(String activity)
+	{
+		this.activity = activity;
+	}
+	
+	public void setActivity(String str)
+	{
+		this.activity = str;
+	}
+	
+	protected void onCreate(Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+		// Display the fragment as the main content.
+		
+		settingsFragment = new SettingsFragment(this);
+		
+		Bundle bundle = this.getIntent().getExtras();
+		this.activity = bundle.getString(VideoActivity.MAIN_ACTIVITY);
+		  
+		//THIS is the error
+		
+		getFragmentManager().beginTransaction().replace(android.R.id.content, settingsFragment).commit();	
+				
+	}
+	
+	public void swapBack()
+    {
+    	if(activity.equals(VideoActivity.NAME_ACTIVITY_MAIN))
+    	{
+    		Intent intent = new Intent(this, VideoActivity.class);
+            startActivity(intent);
+        }
+    	else if(activity.equals(GraphingActivity.NAME_ACTIVITY_GRAPHING))
+    	{
+    		Intent intent = new Intent(this, GraphingActivity.class);
+            startActivity(intent);
+        }
+    }
+	
+	public void clearAllData()
+	{
+		 DialogFragment newFragment = new NoticeDialogFragment();
+		    newFragment.show(getFragmentManager(), "missiles");
+	}
+	
+	private String activity;
+	
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		getMenuInflater().inflate(R.menu.activity_preferences, menu);
+		return true;
+	}
+
+	public void onDialogPositiveClick(DialogFragment dialog, String message) 
+	{
+		if(message.equals(EnumDialogOptions.DIALOG_DELETE_POINTS_CONFIRM.value))
+		{
+			//Clear all data
+			VideoActivity.mainProject.getOptions().clearAllPoints();
+		}
+	}
+
+	public void onDialogNegativeClick(DialogFragment dialog, String message) 
+	{
+		
+		//Do nothing 
+	}
+
+}

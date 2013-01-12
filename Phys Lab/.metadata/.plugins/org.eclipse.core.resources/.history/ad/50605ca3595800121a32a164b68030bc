@@ -1,0 +1,84 @@
+package utils.preferences;
+
+import gui.activities.PreferencesActivity;
+import gui.activities.R;
+import android.os.Bundle;
+import android.preference.CheckBoxPreference;
+import android.preference.Preference;
+import android.preference.Preference.OnPreferenceClickListener;
+import android.preference.PreferenceFragment;
+
+public class SettingsFragment extends PreferenceFragment 
+{
+	private PreferencesActivity preferences;
+	
+	public SettingsFragment()
+	{
+	}
+	
+	public SettingsFragment(final PreferencesActivity pref)
+	{
+		this.preferences = pref;
+	}
+	
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        addPreferencesFromResource(R.xml.preferences_menu);
+        registerMouseListener("return_button", null, preferences);
+    }
+
+    public void registerMouseListener(String key, OnPreferenceClickListener listener, final PreferencesActivity pref)
+    {
+    	/*
+    	Preference myPref = (Preference) findPreference("preference_close_preferences");
+    	myPref.setOnPreferenceClickListener(    	
+    	new OnPreferenceClickListener() 
+		{
+            public boolean onPreferenceClick(Preference preference) 
+            {
+            	pref.swapBack();
+				return false;
+            }
+    	});
+    	*/
+    	
+    	Preference clearDataPref = (Preference) findPreference("preference_clear_all_data");
+    	clearDataPref.setOnPreferenceClickListener(    	
+    	new OnPreferenceClickListener() 
+		{
+            public boolean onPreferenceClick(Preference preference) 
+            {
+            	pref.clearAllData();
+				return false;
+            }
+    	});
+    } 
+    
+    /*
+    public boolean onPreferenceChange(Preference preference, Object newValue)
+    {
+	    String key = preference.getKey();
+	    if (key.equals("preference_measure_x")) {
+	        //Reset other items
+	        CheckBoxPreference p = (CheckBoxPreference)findPreference("preference_measure_x");
+	        p.setChecked(false);
+	    }
+	    else if (key.equals("preference_measure_y")) {
+	        //Reset other items
+	        CheckBoxPreference p = (CheckBoxPreference)findPreference("preference_measure_y");
+	        p.setChecked(false);
+	    }
+	    else if (key.equals("preference_measure_total")) {
+	        //Reset other items
+	        CheckBoxPreference p = (CheckBoxPreference)findPreference("preference_measure_total");
+	        p.setChecked(false);
+	    }
+
+	    //Force the current focused checkbox to always stay checked when pressed
+	    //i.e confirms value when newValue is checked (true) and discards newValue
+	    //when newValue is unchecked (false)
+	    return (Boolean)newValue;
+	}
+	*/
+}

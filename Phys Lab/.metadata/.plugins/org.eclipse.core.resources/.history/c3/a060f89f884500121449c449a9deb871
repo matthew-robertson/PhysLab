@@ -1,0 +1,97 @@
+package project;
+
+import gui.activities.VideoActivity;
+
+import java.io.Serializable;
+
+import android.content.SharedPreferences;
+import android.os.Environment;
+import android.preference.Preference;
+import android.preference.PreferenceManager;
+
+import utils.action.StackAction;
+import utils.graphing.GraphUtils;
+import utils.graphing.GraphableObjectContainer;
+import utils.graphing.Point;
+
+public class Project
+		implements Serializable
+{
+	private static final long serialVersionUID = 1L;
+	private OptionsObject options;
+	public GraphableObjectContainer graphable;
+	private StackAction actionStack;
+	private static final int ACTION_QUEUE_SIZE = 20;
+	
+	public Project()
+	{
+		actionStack = new StackAction(ACTION_QUEUE_SIZE);
+		options = new OptionsObject();
+		graphable = new GraphableObjectContainer();
+	}
+	
+	public Project(OptionsObject options, GraphableObjectContainer graphable)
+	{
+		this.actionStack = new StackAction(ACTION_QUEUE_SIZE);
+		this.options = options;
+		this.graphable = graphable;
+	}
+	
+	public void updateGraphable()
+	{
+		GraphUtils utils = new GraphUtils();
+		Point[] points = options.getPointsAsArray();
+		graphable = utils.convertRawDataToGraphable(points);
+		System.out.println("Breakpoint");
+	}
+	
+	public StackAction getActionStack()
+	{
+		return actionStack;
+	}
+	
+	public GraphableObjectContainer getGraphable()
+	{
+		return graphable;
+	}
+	
+	public Project setGraphable(GraphableObjectContainer graphable)
+	{
+		this.graphable = graphable;
+		return this;
+	}
+	
+	public OptionsObject getOptions()
+	{
+		return options;
+	}	
+
+	public Project setOptions(OptionsObject options)
+	{
+		this.options = options;
+		return this;
+	}
+	
+	/**
+	 * Checks if external storage is available for read and write 
+	 */
+	public boolean isExternalStorageWritable() 
+	{
+	    String state = Environment.getExternalStorageState();
+	    if (Environment.MEDIA_MOUNTED.equals(state)) {
+	        return true;
+	    }
+	    return false;
+	}
+	
+	public boolean save(boolean saveInternally)
+	{
+		if(!saveInternally && !isExternalStorageWritable())
+		{
+			return false;
+		}
+		
+		
+		return true;
+	}
+}	

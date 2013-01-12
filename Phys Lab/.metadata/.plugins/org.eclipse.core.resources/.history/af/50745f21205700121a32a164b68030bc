@@ -1,0 +1,876 @@
+package gui.activities;
+
+import java.io.File;
+
+import project.Project;
+import utils.action.Action;
+import utils.action.ActionAdd;
+import utils.action.EnumAction;
+import utils.drawing.DrawablePanel;
+import utils.graphing.Boundary;
+import utils.graphing.Point;
+import utils.preferences.ChooseProjectDialog;
+import utils.preferences.VideoConfirmDialogFragment;
+import android.app.Activity;
+import android.app.DialogFragment;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.view.GestureDetector;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ImageView.ScaleType;
+import android.widget.RelativeLayout;
+
+public class VideoActivity extends Activity 
+		implements VideoConfirmDialogFragment.VideoConfirmDialogListener, ChooseProjectDialog.ChooseProjectDialogListener,
+		 GestureDetector.OnGestureListener,
+         GestureDetector.OnDoubleTapListener
+{
+	public final static String MAIN_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String NAME_ACTIVITY_MAIN = "main_activity";
+	public static Project mainProject;
+	private boolean plottingPoints;
+	private Menu menu;
+	private GestureDetector mDetector; 
+	private boolean isSettingOrigin;
+	final int TOP_PADDING = 75;	
+	final int AXIS_SIZE = 7; // half the actual size (reduces math)
+	private boolean isSettingScaleLeft;
+	private boolean isSettingScaleRight;
+	private Boundary scaleBoundary;
+	final int SCALE_SIZE = 5;
+	private final int TICKS_PER_SECOND = 20;
+	private final int SKIP_TICKS = 1000 / TICKS_PER_SECOND;
+	private final int MAX_FRAMESKIP = 200000000;//5;
+	private long next_game_tick = System.currentTimeMillis();
+	private int loops;
+	Bitmap myImg; 
+	//Move this to the project
+		Point origin;
+	
+		private final String POSITIVE_MESSAGE = "Set Origin";
+    	private final String NEGATIVE_MESSAGE = "Cancel Set Origin";
+    	private final String STOP_PLOTTING_POINTS = "Stop Plotting Points";
+        private final String START_PLOTTING_POINTS = "Start Plotting Points";
+        
+	private boolean isScaleMeasureDisplayed;
+	//DEBUG VARIABLES
+	private boolean firstLaunch = true;
+	//END DEBUG
+	
+	//TODO: more undo options (like origin/scale!)
+	
+	/**
+	 * Probable issues: Project Swapping.
+	 * 		Known Issue: Preferences dont update appropriately. They do get updated when a new project is created.
+	 * 		[Test] See if the saving issue (where the project was always the default) has been fixed with the oncreate() change.
+	 */
+	
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_video);        
+        plottingPoints = false;
+        // Instantiate the gesture detector with the
+        // application context and an implementation of
+        // GestureDetector.OnGestureListener
+        mDetector = new GestureDetector(this,this);
+        // Set the gesture detector as the double tap
+        // listener.
+        mDetector.setOnDoubleTapListener(this);
+        
+        if(firstLaunch)
+        {
+        	mainProject = new Project(this);
+        	firstLaunch = false;
+        }        
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) 
+    {
+        getMenuInflater().inflate(R.menu.activity_video, menu);
+        this.menu = menu;
+        return true;
+    }
+    
+    public boolean onOptionsItemSelected(MenuItem item) 
+    {
+        // Handle item selection
+        switch (item.getItemId()) 
+        {
+            case R.id.preferences_item:
+            	openPreferences();
+                return true;
+            case R.id.action_bar_graph:
+            	openGraphs();
+            	return true;
+            case R.id.action_bar_undo:
+            	reverseLastAction();
+            	return true;
+            case R.id.action_bar_set_origin:
+            	setOrigin();            	
+            	return true;
+            case R.id.action_bar_plot_points:
+            	plotPoints();
+            	return true;
+            case R.id.action_bar_set_scale:
+            	setScale();            	
+            	return true;
+            case R.id.action_bar_save_video:
+            	saveProject();
+            	return true;
+            case R.id.action_bar_open_project_video:
+            	beginOpeningProject();
+            	return true;
+            case R.id.action_bar_new_project_video:
+            	newProject();
+            	return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    
+    private String[] queryForFilesInternally()
+    {
+    	File[] files = getFilesDir().listFiles();
+    	String[] strings = new String[files.length];
+    	for(int i = 0; i < strings.length; i++)
+    	{
+    		strings[i] = trimFilepath(files[i].toString());
+    	}
+    	return strings;
+    }
+    
+    private String[] queryForFilesExternally()
+    {
+    	if(mainProject.isExternalStorageWritable())
+    	{
+	    	File[] files = getExternalFilesDir(null).listFiles();
+	    	String[] strings = new String[files.length];
+	    	for(int i = 0; i < strings.length; i++)
+	    	{
+	    		strings[i] = trimFilepath(files[i].toString());
+	    	}
+	    	return strings;
+    	}
+    	
+    	return new String[] { };
+    }
+    
+    public String trimFilepath(String path)
+    {
+    	return path.substring(path.lastIndexOf("/") + 1, path.indexOf(".physdat"));
+    }
+    
+    public void beginOpeningProject()
+    {
+    	String[] mergedFilePaths;
+    	String[] internal = queryForFilesInternally();
+    	String[] external = queryForFilesExternally();
+    	mergedFilePaths = new String[internal.length + external.length];
+    	
+    	for(int i = 0; i < internal.length; i++)
+    	{
+    		mergedFilePaths[i] = internal[i];
+    	}
+    	for(int i = 0; i < external.length; i++)
+    	{
+    		mergedFilePaths[internal.length + i] = external[i];
+    	}
+    	
+    	DialogFragment newFragment = new ChooseProjectDialog(mergedFilePaths, internal.length - 1);
+	    newFragment.show(getFragmentManager(), "open_project");    	
+    }
+    
+    public void newProject()
+    {
+    	DialogFragment newFragment = new VideoConfirmDialogFragment();
+	    newFragment.show(getFragmentManager(), "new_project");    	
+    }
+    
+    public void onDialogPositiveClick(DialogFragment dialog, String message) 
+	{
+    	//Confirm new 
+    	mainProject = new Project(this);
+	}
+
+	public void onDialogNegativeClick(DialogFragment dialog, String message) 
+	{
+	}
+    
+	public void openProject(DialogFragment dialog, String filePath, boolean storedInternally)
+	{
+		Project proj = mainProject.load(this, filePath, storedInternally);
+		
+		//Add a confirm dialog somewhere earlier? maybe for saving or something.
+		if(proj != null)
+		{
+			mainProject = proj;
+		}
+	
+	
+	}
+	
+	public void displayOrigin(float x, float y)
+	{
+		origin = new Point(x, y);
+		
+		ImageView imageHA = (ImageView) findViewById(R.id.image_view_vertical_axis);
+		ImageView imageVA = (ImageView) findViewById(R.id.image_view_horizontal_axis);
+		ImageView imageO = (ImageView) findViewById(R.id.image_view_origin);
+    	
+		imageHA.setVisibility(View.VISIBLE);
+		imageVA.setVisibility(View.VISIBLE);
+		imageO.setVisibility(View.VISIBLE);
+		
+		
+		System.out.println(getWidth() + "   ," + getHeight());
+		
+		RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(getWidth(), (int)((y + AXIS_SIZE - TOP_PADDING) - (y - AXIS_SIZE - TOP_PADDING))); 
+		//params.setMargins(0, (int)y - AXIS_SIZE - TOP_PADDING, (int)getWidth(), (int)y + AXIS_SIZE - TOP_PADDING);
+		params.leftMargin = 0;
+		params.topMargin = (int)y - AXIS_SIZE - TOP_PADDING;
+		
+		RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams((int) ((x + AXIS_SIZE) - (x - AXIS_SIZE)), getHeight()); 
+//		params1.setMargins((int)x - AXIS_SIZE, 0, (int)x + AXIS_SIZE, getHeight());
+		params1.leftMargin = (int)x - AXIS_SIZE;
+		params1.topMargin = 0;
+		
+		RelativeLayout.LayoutParams params2 = new RelativeLayout.LayoutParams((int)((x + AXIS_SIZE) - (x - AXIS_SIZE)), (int)((y + AXIS_SIZE - TOP_PADDING) - (y - AXIS_SIZE - TOP_PADDING))); 
+//		params2.setMargins((int)x - AXIS_SIZE, (int)y - AXIS_SIZE - TOP_PADDING, (int)x + AXIS_SIZE, (int)y + AXIS_SIZE - TOP_PADDING);
+		params2.leftMargin = (int) (x - AXIS_SIZE);
+		params2.topMargin = (int) (y - AXIS_SIZE - TOP_PADDING);
+		
+		imageHA.setLayoutParams(params);
+		imageVA.setLayoutParams(params1);
+		imageO.setLayoutParams(params2);
+		
+		(menu.findItem(R.id.action_bar_set_origin)).setTitle(POSITIVE_MESSAGE);
+    	isSettingOrigin = false;
+	}
+	
+    public void setOrigin()
+    {
+    	(menu.findItem(R.id.action_bar_set_origin)).setTitle((isSettingOrigin) ? POSITIVE_MESSAGE : NEGATIVE_MESSAGE);
+    	
+		isSettingOrigin = !isSettingOrigin;    	
+    }
+    
+    /**
+     * Mouse click inside where the origin in.
+     * @return
+     */
+    public boolean isInOriginBounds(float x, float y)
+    {
+    	if(origin != null)
+    	{
+    		if(x > (origin.getX() - AXIS_SIZE) &&
+    			x < (origin.getX() + AXIS_SIZE) &&
+    			y > (origin.getY() - AXIS_SIZE) &&
+    			y < (origin.getY() + AXIS_SIZE))
+    		{
+    			return true;
+    		}
+    	}  	
+    	
+    	return false;
+    }
+    
+    public void plotPoints()
+    {
+    	plottingPoints = !plottingPoints;
+    	if(plottingPoints)
+    	{
+    		MenuItem item = menu.findItem(R.id.action_bar_plot_points);
+    		item.setTitle(STOP_PLOTTING_POINTS);
+    	}
+    	else
+    	{
+    		MenuItem item = menu.findItem(R.id.action_bar_plot_points);
+    		item.setTitle(START_PLOTTING_POINTS);
+    	}    	
+    }
+    
+    public void addPoint(int x, int y)
+    {
+    	Point point = new Point(x, y);
+    	mainProject.getOptions().registerPoint(point);
+    	mainProject.getActionStack().push(new ActionAdd());
+    	System.out.println("Adding new point (hopefully) @" + x + "," + y);
+    }
+    
+    public void setScale()
+    {
+    	ImageView image = (ImageView) findViewById(R.id.image_view_scale);//new ImageView(this);
+    //	imageView.setImageResource(R.drawable.origin);
+ 
+    	//TODO: Make this code less stupid. IE bound safe. Seriously.
+    	//TODO: Reset Scale/Origin
+    	
+    	image.setVisibility(View.VISIBLE);
+    	//image.setScaleType(ScaleType.MATRIX);   //required
+			 
+    	if(scaleBoundary == null)
+    	{
+    		double left = (getWidth() * 0.5) - (getWidth() * 0.25);
+			double top = (getHeight() * 0.5) - 20;
+			double right = (getWidth() * 0.5) + (getWidth() * 0.25);
+			double bottom = (getHeight() * 0.5) + 20;
+			
+    		scaleBoundary = new Boundary(new Point[] {
+    									 	new Point(left, top),
+    									 	new Point(right, top),
+    									 	new Point(right, bottom),
+    									 	new Point(left, bottom) 
+    									 });    	
+    		
+    		
+    		RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)(right-left), (int)(bottom-top)); 
+		    //params.setMargins((int)left, (int)top, (int)right, (int)bottom);
+		    params.leftMargin = (int) left;
+		    params.topMargin = (int) top;
+		    
+    		
+    		image.setLayoutParams(params);
+        	//*/
+    		//image.layout((int)left, (int)top, (int)right, (int)bottom);
+        	myImg = BitmapFactory.decodeResource(getResources(), R.drawable.scale);
+        	
+        	EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));
+        	scaleText.setText("100");
+        	scaleText.setVisibility(View.VISIBLE);
+
+
+		    RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT); 
+		    params1.setMargins(0, 0, (int)(getWidth() * 0.4), getHeight() / 10);
+		    
+        	scaleText.setLayoutParams(params1);
+    		
+
+        	isScaleMeasureDisplayed = true;
+    	
+        	
+    	}
+
+    }
+    
+    public boolean isInScaleLeftBounds(float x, float y)
+    {
+    	return (scaleBoundary == null) ? false : scaleBoundary.isInLeftBounds(x, y);
+    }
+    
+    public boolean isInScaleRightBounds(float x, float y)
+    {
+    	return (scaleBoundary == null) ? false : scaleBoundary.isInRightBounds(x, y);
+    }    
+    
+    public void saveProject()
+    {
+    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+    	boolean saveInternally = prefs.getBoolean("preference_default_save_option", false);
+    	mainProject.save(this, saveInternally);
+    }
+    
+    public void reverseLastAction()
+    {
+    	//Check to make sure there's actually a queue event
+    	if(mainProject.getActionStack().size() > 0)
+    	{
+    		Action action = mainProject.getActionStack().pop();
+    		String description = action.getDescription();
+    		//Last action was adding a point... so remove it
+    		if(description.equals(EnumAction.ACTION_ADD_POINT.actionValue))
+    		{
+    			if(mainProject.getOptions().getPointCount() > 0)
+    	    	{
+    	    		Point point = mainProject.getOptions().removeLastPoint();
+    	    		System.out.println("Removing Last Point (hopefully)");
+    	    	}
+    		}
+    		if(description.equals(EnumAction.ACTION_DELETE_POINT.actionValue))
+    		{
+    			mainProject.getOptions().registerPoint((Point)(action.getAssociatedObject()));
+    		}
+    	}
+    }
+    
+    public int getWidth()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.x;
+	}
+	
+	public int getHeight()
+	{
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.y;
+	}
+    
+    public void openPreferences()
+    {
+    	Intent intent = new Intent(this, PreferencesActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, NAME_ACTIVITY_MAIN);
+        startActivity(intent);
+    }
+
+    public void openGraphs(/*View view*/)
+    {
+    	Intent intent = new Intent(this, GraphingActivity.class);
+        intent.putExtra(MAIN_ACTIVITY, "Unneeded_Method");
+        startActivity(intent);
+    }
+
+	@Override
+	public boolean onDoubleTap(MotionEvent arg0) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public boolean onSingleTapConfirmed(MotionEvent e) 
+	{
+		if(mainProject == null)
+		{
+			//Should Register an Error
+		}		
+		
+		//There is padding of 75 px at the top (so 0, 75) is basically (0,0) of the useable area.
+		//usable area is therefore 320x405
+		float x = e.getRawX();
+		float y = e.getRawY() - TOP_PADDING;
+		//System.out.println("Single_Tap_Confirmed @(" + x + "," + y + ")");
+		
+		//Possibly move this to the touch event (so it can be a double click)
+		if(isSettingOrigin)
+		{
+			displayOrigin(x, y + TOP_PADDING);
+		}
+		else if(isInOriginBounds(x, y)) //If the origin center point is clicked, lets the axis-be reset.
+		{
+			//Consider removing this unless it changes the cursor. Could be annoying or wierd to not know it's active.
+			//Maybe toggle the menu item? 
+			isSettingOrigin = true;
+		}
+		
+		if(plottingPoints)
+		{
+			final int SIZE = 4;
+			ImageView image = new ImageView(this);
+			image.setImageResource(R.drawable.point);
+	//		image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+			image.setAdjustViewBounds(true);
+			//image.layout((int)x - SIZE, (int)y - SIZE, (int)x + SIZE, (int)y + SIZE);
+			mainProject.getOptions().registerPoint(new Point(x, y + TOP_PADDING, image));
+			
+			// TODO: Set LayoutParams for each imageView
+			// i.e.
+			/*
+			RelativeLayout.LayoutParams imageParams1 = new RelativeLayout.LayoutParams(SIZE * 2, SIZE * 2); 
+			imageParams1.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+			imageParams1.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+*/
+			
+			//RelativeLayout.LayoutParams imageParams2 = new RelativeLayout.LayoutParams(SIZE * 2, SIZE * 2);
+			//imageParams2.setMargins((int)x - SIZE, (int)y - SIZE, (int)x + SIZE, (int)y + SIZE);
+		//	imageParams2.gravity = 0x11;
+		//	
+			//FrameLayout fLayout = (FrameLayout)(this.findViewById(android.R.id.content));
+			RelativeLayout rLayout = (RelativeLayout)(findViewById(R.id.activity_video_relative_layout));
+			
+			//LayoutInflater li = LayoutInflater.from(this);
+			
+			//RelativeLayout mRelativeLayout = (RelativeLayout) findViewById(R.id.board);
+			//ImageView i = new ImageView(this);
+			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(2 * SIZE, 2 * SIZE);
+			params.leftMargin = (int) x - SIZE;
+			params.topMargin = (int) y - SIZE;
+			
+			
+			rLayout.addView(image, params);
+			
+		//	image.layout(30, 30, 80, 80);
+			//image.layout((int)x - SIZE, (int)y - SIZE, (int)x + SIZE, (int)y + SIZE);
+			
+			
+			//Relative layout
+			//this.findViewById(android.R.id.content);
+			
+			
+			/**
+			Important Code:
+				Remove an image(view) code:
+				rLayout.removeView(image);
+			*/
+		
+		}
+		
+		//Confirmed to not be a double click
+		
+		
+		return false;
+	}
+
+	public boolean isInScaleBounds(float x, float y)
+	{
+		return (scaleBoundary == null) ? false : scaleBoundary.contains(x, y);
+	}
+	
+	public boolean onDown(MotionEvent e) 
+	{
+		//"Mouse Down"
+
+		if(mainProject == null || scaleBoundary == null)
+		{
+			//Should Register an Error
+			return false;
+		}	
+		
+		float x = e.getRawX();
+		float y = e.getRawY() - TOP_PADDING;
+		//System.out.println("on_down@(" + x + "," + y + ")");
+		
+		//System.out.println(isInScaleLeftBounds(x, y) + ", " + isInScaleRightBounds(x, y) + " " + scaleBoundary.left + " " + 
+		//		scaleBoundary.right + " " + scaleBoundary.top + " " + scaleBoundary.bottom);
+		
+		if(isInScaleLeftBounds(x, y))
+		{
+			isSettingScaleLeft = true;
+		//	isInScaleLeftBounds(x, y);
+		}
+		if(isInScaleRightBounds(x, y))
+		{
+			isSettingScaleRight = true;
+		//	isInScaleRightBounds(x, y);
+		}
+		if(isInScaleBounds(x, y))
+		{
+			isScaleMeasureDisplayed = true;
+	    }
+		else
+		{
+			isScaleMeasureDisplayed = false;
+		}
+		
+		//System.out.println("on_down@" + isSettingScaleLeft + ", " + isSettingScaleRight);
+		
+		return false;
+	}
+
+	public boolean onSingleTapUp(MotionEvent arg0)
+	{
+		if(mainProject == null)
+		{
+			//Should Register an Error
+		}		
+		
+		
+		return false;
+	}
+	
+	public double angleBetweenTwoVectors(double x1, double y1, double x2, double y2, double x3, double y3)
+	{
+		double angle1 = Math.atan2(y1 - y2, x1 - x2);
+		double angle2 = Math.atan2(y1 - y3, x1 - x3);
+		return Math.toDegrees(angle1-angle2);
+
+		
+		/*
+		double l1x = x2 - x1;
+		double l1y = y2 - y1;
+		double l2x = x3 - x1;
+		double l2y = y3 - y1;
+		//float tan1 = (float)l1y/(float)l1x;
+		//float tan2 = (float)l2y/(float)l2x;
+		double ang1 = Math.atan2(l1y, l1x);
+		double ang2 = Math.atan2(l2y, l2x);
+		return (Math.toDegrees(ang2-ang1));
+		
+		/*
+		double A = x1 * x2 + y1 * y2;
+		double B = Math.sqrt(Math.pow(x1, 2) + Math.pow(y1, 2));
+		double C = Math.sqrt(Math.pow(x2, 2) + Math.pow(y2, 2));
+		
+		double answer = A / (B * C);
+		
+		return Math.toDegrees(Math.acos(answer));
+		*/
+	}
+		
+	public double lineLength(double x1, double y1, double x2, double y2)
+	{
+		return Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
+	}
+	
+	public Point rotate_point(float cx, float cy, float angle, Point p)
+	{
+	  double s = Math.sin(Math.toRadians(angle));
+	  double c = Math.cos(Math.toRadians(angle));
+	
+	  // translate point back to origin:
+	  p.x -= cx;
+	  p.y -= cy;
+	
+	  // rotate point
+	  double xnew = p.x * c - p.y * s;
+	  double ynew = p.x * s + p.y * c;
+	
+	  // translate point back:
+	  p.x = xnew + cx;
+	  p.y = ynew + cy;
+	  
+	  return p;
+	}
+	
+	public Bitmap getResizedBitmap(Bitmap bm, int newWidth, int newHeight)
+	{
+	    int width = bm.getWidth();
+	    int height = bm.getHeight();	    
+	    float scaleWidth = ((float) (newWidth / (getWidth() * 0.5)));
+	    float scaleHeight = ((float) newHeight) / height;
+	    
+	    Matrix matrix = new Matrix();
+	    matrix.postScale(scaleWidth, scaleHeight);
+	    return Bitmap.createBitmap(bm, 0, 0, width, height, matrix, true);
+	}
+	
+	public double angleOfLine(Point point1, Point point2)
+	{
+		double xLen = (point2.x - point1.x);
+		double yLen = (point2.y - point1.y);
+		double angle = Math.toDegrees(Math.atan((yLen/xLen)));
+		return 360 + angle;
+	}
+	
+	public boolean onScroll(MotionEvent e0, MotionEvent e, float arg2, float arg3) 
+	{
+		loops = 0;
+
+		if(System.currentTimeMillis() > next_game_tick && loops < MAX_FRAMESKIP)
+	    {
+			float x = e.getRawX();
+			float y = e.getRawY() - TOP_PADDING;
+			
+			if(isSettingScaleLeft)
+			{
+				ImageView image = (ImageView) findViewById(R.id.image_view_scale);
+				Point rightPoint = scaleBoundary.centerOfRightLine();
+				Point leftPoint = scaleBoundary.centerOfLeftLine();
+				Point centerPoint = scaleBoundary.getPerfectCenter();
+			    
+				double lineLength = lineLength(rightPoint.getX(), rightPoint.getY(), x, y);
+				double angle = angleBetweenTwoVectors(rightPoint.x, rightPoint.y, x, y, leftPoint.getX(), leftPoint.getY());
+				scaleBoundary.totalRotLeft += angle;				
+				
+				scaleBoundary.updateLengthLeft(lineLength);
+				scaleBoundary.rotateOnRightCenter(angle);
+				
+			    double left = scaleBoundary.points[0].x;
+			    double right = scaleBoundary.points[0].x;
+			    double top = scaleBoundary.points[0].y;
+			    double bottom = scaleBoundary.points[0].y;
+			    
+			    for(int i = 0; i < scaleBoundary.points.length; i++)
+			    {
+			    	Point p = scaleBoundary.points[i];
+			    	
+			    	if(p.x < left)
+			    		left = p.x;
+			    	if(p.x > right)
+			    		right = p.x;
+			    	if(p.y < top)
+			    		top = p.y;
+			    	if(p.y > bottom)
+			    		bottom = p.y;
+			    }
+			    
+			    Matrix matrix = new Matrix();
+				image.setScaleType(ScaleType.MATRIX);
+				matrix.setRotate((float)(scaleBoundary.totalRotRight +scaleBoundary.totalRotLeft), (int)centerPoint.getX(), (int)centerPoint.getY());//, (int)rightPoint.getX(), (int)rightPoint.getY()
+
+				Bitmap resizedBitmap = getResizedBitmap(myImg, (int)lineLength, myImg.getHeight());
+			    Bitmap img2 = Bitmap.createBitmap(resizedBitmap, 0, 0, resizedBitmap.getWidth(), resizedBitmap.getHeight(), matrix, true);
+			    image.setImageBitmap(img2);			 
+			    
+			    /*
+			    DrawablePanel panel_drawing = (DrawablePanel)(findViewById(R.id.drawable_area_paint_thing));
+			    panel_drawing.redraw(new Point[] {
+					 	new Point(left, top),
+					 	new Point(right, top),
+					 	new Point(right, bottom),
+					 	new Point(left, bottom),
+					 	new Point(left, top),
+					 	scaleBoundary.points[0],
+					 	scaleBoundary.points[1],
+					 	scaleBoundary.points[2],
+					 	scaleBoundary.points[3], scaleBoundary.points[0], rightPoint, leftPoint,
+					 	scaleBoundary.leftBoundary.points[0],
+					 	scaleBoundary.leftBoundary.points[1],
+					 	scaleBoundary.leftBoundary.points[2],
+					 	scaleBoundary.leftBoundary.points[3],
+					 	scaleBoundary.leftBoundary.points[0],
+					 	scaleBoundary.rightBoundary.points[0],
+						scaleBoundary.rightBoundary.points[1],
+						scaleBoundary.rightBoundary.points[2],
+						scaleBoundary.rightBoundary.points[3],
+						scaleBoundary.rightBoundary.points[0]
+				});
+			    */
+			    
+			    double hypotenuse = Math.sqrt(Math.pow(bottom - top, 2) + Math.pow(right-left, 2));
+			    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)hypotenuse, (int)hypotenuse);
+			    params.leftMargin = (int) (left);
+			    params.topMargin = (int) top;			    
+			    //move the image to where it should be... not (0, 0)
+			    RelativeLayout rl = (RelativeLayout)findViewById(R.id.activity_video_relative_layout);
+			    rl.removeView(image);
+			    rl.addView(image, params);	
+			    
+			    RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT); 
+			    params1.setMargins(0, 0, (int)(getWidth() * 0.4), getHeight() / 10);
+			    
+	        	EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));
+	        	scaleText.setLayoutParams(params1);
+	 		}
+			else if(isSettingScaleRight)
+			{
+				ImageView image = (ImageView) findViewById(R.id.image_view_scale);
+				Point rightPoint = scaleBoundary.centerOfRightLine();
+				Point leftPoint = scaleBoundary.centerOfLeftLine();
+				Point centerPoint = scaleBoundary.getPerfectCenter();
+			    double lineLength = lineLength(leftPoint.getX(), leftPoint.getY(), x, y);
+				double angle = angleBetweenTwoVectors(leftPoint.getX(), leftPoint.getY(), x, y, rightPoint.x, rightPoint.y);
+				scaleBoundary.totalRotRight += angle;				
+				scaleBoundary.updateLengthRight(lineLength);
+				scaleBoundary.rotateOnLeftCenter(angle);
+				
+				double left = scaleBoundary.points[0].x;
+			    double right = scaleBoundary.points[0].x;
+			    double top = scaleBoundary.points[0].y;
+			    double bottom = scaleBoundary.points[0].y;
+			    
+			    for(int i = 0; i < scaleBoundary.points.length; i++)
+			    {
+			    	Point p = scaleBoundary.points[i];
+			    	
+			    	if(p.x < left)
+			    		left = p.x;
+			    	if(p.x > right)
+			    		right = p.x;
+			    	if(p.y < top)
+			    		top = p.y;
+			    	if(p.y > bottom)
+			    		bottom = p.y;			    	
+			    }
+			    
+			    Matrix matrix = new Matrix();
+				image.setScaleType(ScaleType.MATRIX);
+				matrix.setRotate((float)(scaleBoundary.totalRotRight +scaleBoundary.totalRotLeft), (int)centerPoint.getX(), (int)centerPoint.getY());//, (int)rightPoint.getX(), (int)rightPoint.getY()
+		
+				Bitmap resizedBitmap = getResizedBitmap(myImg, (int)lineLength, myImg.getHeight());
+			    Bitmap img2 = Bitmap.createBitmap(resizedBitmap, 0, 0, resizedBitmap.getWidth(), resizedBitmap.getHeight(), matrix, true);
+			    image.setImageBitmap(img2);
+			    	
+			    /*
+			    DrawablePanel panel_drawing = (DrawablePanel)(findViewById(R.id.drawable_area_paint_thing));
+			    panel_drawing.redraw(new Point[] {
+					 	new Point(left, top),
+					 	new Point(right, top),
+					 	new Point(right, bottom),
+					 	new Point(left, bottom),
+					 	new Point(left, top),					 	
+					 	scaleBoundary.points[0],
+					 	scaleBoundary.points[1],
+					 	scaleBoundary.points[2],
+					 	scaleBoundary.points[3], scaleBoundary.points[0], rightPoint, leftPoint,
+					 	scaleBoundary.leftBoundary.points[0],
+					 	scaleBoundary.leftBoundary.points[1],
+					 	scaleBoundary.leftBoundary.points[2],
+					 	scaleBoundary.leftBoundary.points[3],
+					 	scaleBoundary.leftBoundary.points[0],					 	
+					 	scaleBoundary.rightBoundary.points[0],
+						scaleBoundary.rightBoundary.points[1],
+						scaleBoundary.rightBoundary.points[2],
+						scaleBoundary.rightBoundary.points[3],
+						scaleBoundary.rightBoundary.points[0]					
+			    });
+			    */
+			    
+			    double hypotenuse = Math.sqrt(Math.pow(bottom - top, 2) + Math.pow(right-left, 2));
+			    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)hypotenuse, (int)hypotenuse);
+			    params.leftMargin = (int) (left);
+			    params.topMargin = (int) top;			    
+			    //move the image to where it should be... not (0, 0)
+			    RelativeLayout rl = (RelativeLayout)findViewById(R.id.activity_video_relative_layout);
+			    rl.removeView(image);
+			    rl.addView(image, params);			
+			
+
+
+			    RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT); 
+			    params1.setMargins(0, 0, (int)(getWidth() * 0.4), getHeight() / 10);
+			    
+	        	EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));
+	        	scaleText.setLayoutParams(params1);
+	 		}
+			
+			next_game_tick += SKIP_TICKS;
+	        loops++;
+	    }
+		
+		return false;
+	}
+	
+	public boolean onDoubleTapEvent(MotionEvent e) 
+	{
+		return false;
+	}
+	
+	public boolean onFling(MotionEvent arg0, MotionEvent arg1, float arg2, float arg3)
+	{
+		return false;
+	}
+
+	public void onLongPress(MotionEvent arg0) 
+	{	
+	}
+	
+	public void onShowPress(MotionEvent arg0)
+	{
+	}
+
+	public boolean onTouchEvent(MotionEvent event)
+	{ 
+		this.mDetector.onTouchEvent(event);	   
+	    
+	   	if(event.getAction() == MotionEvent.ACTION_UP)
+	   	{
+			isSettingScaleRight = false;
+			isSettingScaleLeft = false;
+	   	}
+	   	if(isScaleMeasureDisplayed)
+	   	{
+	   		EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));        	
+        	scaleText.setVisibility(View.VISIBLE);
+	   	}
+	   	else
+	   	{
+	   		EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));        	
+        	scaleText.setVisibility(View.INVISIBLE);
+	   	}
+	   
+	    // Be sure to call the superclass implementation
+	    return super.onTouchEvent(event);
+	}
+}

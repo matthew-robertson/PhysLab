@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item android:id="@+id/action_bar_video"
+          android:title="@string/action_bar_video"
+          android:showAsAction="ifRoom|withText"
+          android:onClick="swapToMainActivity" />
+        
+    <item android:id="@+id/action_bar_graph"
+          android:title="@string/action_bar_graph"
+          android:showAsAction="ifRoom|withText"
+          android:icon="@drawable/background_stone" >
+           
+          <menu>
+		  		<item android:id="@+id/create_new"
+                  	  android:title="@string/create_new" />
+            	<item android:id="@+id/open"
+                	  android:title="@string/open" />
+       	  </menu>    
+    </item>
+    
+    <item android:id="@+id/action_bar_save"
+          android:title="@string/action_bar_save"
+          android:showAsAction="ifRoom|withText" />
+    
+    <item android:id="@+id/action_bar_export"
+          android:title="@string/action_bar_export"
+          android:showAsAction="ifRoom|withText" />
+    
+    
+</menu>

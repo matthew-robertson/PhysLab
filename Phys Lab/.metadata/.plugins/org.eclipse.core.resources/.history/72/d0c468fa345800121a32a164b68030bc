@@ -1,0 +1,6 @@
+1.0.0
+Initial version lacking features
+
+1.1.0
+Added some basic Actions and an ActionStack (StackAction.java, doesnt extend Action) (For video)
+Added Saving to disk and loading a project

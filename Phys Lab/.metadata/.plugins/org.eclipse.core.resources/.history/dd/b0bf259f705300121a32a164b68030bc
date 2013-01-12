@@ -1,0 +1,8 @@
+package utils.graphing;
+
+import android.graphics.Rect;
+
+public class ScaleBounds extends Rect
+{
+
+}

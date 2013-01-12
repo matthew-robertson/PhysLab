@@ -1,0 +1,8 @@
+1.0.0
+Initial version lacking features
+
+1.3.2
+Changed Project.java, VideoActivity.java, OptionsObject.java
+>Moved variables to Project.
+>Added untested method to verify that screen dimensions are the same.
+>Added option to use X, Y value on graph.

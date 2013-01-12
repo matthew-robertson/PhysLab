@@ -1,0 +1,10 @@
+package utils.graphing;
+
+public class ClickBoundary 
+{
+	private final Point[] points; // Points making up the boundary
+    
+	
+	
+	
+}

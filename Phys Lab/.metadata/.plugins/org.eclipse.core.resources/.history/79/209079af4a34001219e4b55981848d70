@@ -1,0 +1,7 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/menu_settings"
+        android:title="@string/menu_settings"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText" android:visible="true" android:titleCondensed="@string/open" android:enabled="true"/>
+    <group android:id="@+id/group1" android:visible="true"></group>
+</menu>

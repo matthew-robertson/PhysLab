@@ -1,0 +1,150 @@
+package project;
+
+import gui.activities.MainActivity;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import utils.graphing.Point;
+
+public class OptionsObject 
+{
+	private List<Point> points;
+	private String videoPath;
+	private String projectSaveDirectory;
+	private double graphScale;
+	private double startingDistance;
+	private double startingTime;
+	private final static String FILEPATH_DEFAULT_SAVE = "FILL THIS IN";
+	private boolean dataChanged;
+	
+	public OptionsObject(List<Point> points, String videoPath, String projectSaveDirectory, double graphScale, double startingDistance, double startingTime)
+	{
+		this.dataChanged = false;
+		this.points = points;
+		this.videoPath = videoPath;
+		this.projectSaveDirectory = projectSaveDirectory;
+		this.graphScale = graphScale;
+		this.startingDistance = startingDistance;
+		this.startingTime = startingTime;
+	}
+
+	public OptionsObject()
+	{
+		this.dataChanged = false;
+		points = new ArrayList<Point>();
+		
+		points.add(new Point(-1, -2));
+		points.add(new Point(-2, -4));
+		points.add(new Point(-3, -6));
+		points.add(new Point(-4, -8));
+		points.add(new Point(-5, -10));
+		points.add(new Point(-6, -12));
+		//*/
+		/*
+		points.add(new Point(1, 2));
+		points.add(new Point(2, 4));
+		points.add(new Point(3, 6));
+		points.add(new Point(4, 8));
+		points.add(new Point(5, 10));
+		points.add(new Point(6, 12));
+		//*/
+		videoPath = "";
+		projectSaveDirectory = FILEPATH_DEFAULT_SAVE;
+		graphScale = 1.0d;
+		startingDistance = 0.0d;
+		startingTime = 0.0d;
+	}
+	
+	public void clearAllPoints()
+	{
+		points.clear(); //Or make it new again
+		
+		dataChanged = true;
+	}
+	
+	public void registerPoint(Point point)
+	{
+		points.add(point);
+		dataChanged = true;
+	}
+	
+	public void clearPoint(int index)
+	{
+		try 
+		{
+			points.remove(index);
+			dataChanged = true;
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public List<Point> getPoints()
+	{
+		return points;
+	}
+	
+	public Point[] getPointsAsArray()
+	{
+		Point[] newPoints = new Point[points.size()];
+		
+		for(int i = 0; i < points.size(); i++)
+		{
+			newPoints[i] = points.get(i);
+		}
+		
+		return newPoints;
+	}
+	
+	public void setDataChanged(boolean flag)
+	{
+		this.dataChanged = flag;
+	}
+	
+	public void setDataUnchanged()
+	{
+		this.dataChanged = false;
+	}
+	
+	public boolean getDataChanged()
+	{
+		return dataChanged;
+	}
+	
+	
+}
+
+
+
+
+
+/*
+//probably not a class, will be addition to something else.
+public class DrawGraphs
+{
+	public GraphableObjectContainer graphable;
+	
+	public boolean updateGraphable(GraphableObjectContainer graphable)
+	{
+		this.graphable = graphable;
+	}
+
+	public void onDraw()
+	{
+		//Axis
+		//Axis Labels (inc scale numbers on x/y
+		//+/- Quadrants
+		//Preference? add straight line connections between scatter point dots.
+		//			  >Lines of best fit? Exponential, Linear, Logarithmic, Power
+		//			  >Equation && r^2 value?
+		//Scatter plot -> Plot points. [Done]
+		//Line graph -> Plot points. 
+				//Just Linear Connection?
+	}
+	
+}
+
+*/

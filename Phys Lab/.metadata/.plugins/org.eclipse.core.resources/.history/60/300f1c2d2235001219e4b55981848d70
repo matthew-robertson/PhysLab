@@ -1,0 +1,54 @@
+package utils.preferences;
+
+import gui.activities.PreferencesActivity;
+import android.os.Bundle;
+import android.preference.Preference;
+import android.preference.Preference.OnPreferenceClickListener;
+import android.preference.PreferenceFragment;
+
+import com.example.firstapp.R;
+
+public class SettingsFragment extends PreferenceFragment 
+{
+	private PreferencesActivity preferences;
+	private String activity;
+	
+	public SettingsFragment()
+	{
+	}
+	
+	public SettingsFragment(String activity, final PreferencesActivity pref)
+	{
+		this.preferences = pref;
+		this.activity = activity;	
+	}
+	
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        addPreferencesFromResource(R.xml.settings_menu);
+        registerMouseListener("return_button", null, activity, preferences);
+    }
+
+    public void registerMouseListener(String key, OnPreferenceClickListener listener, final String activity, final PreferencesActivity pref)
+    {
+    	Preference myPref = (Preference) findPreference(key);
+    	myPref.setOnPreferenceClickListener(    	
+    	new OnPreferenceClickListener() 
+		{
+            public boolean onPreferenceClick(Preference preference) 
+            {
+				if(activity.equals("main_activity"))
+				{
+					pref.swapBack("main_activity");
+				}
+				else
+				{
+					pref.swapBack("graphing");
+				}
+            	
+            	return false;
+            }
+    	});
+    }    
+}
