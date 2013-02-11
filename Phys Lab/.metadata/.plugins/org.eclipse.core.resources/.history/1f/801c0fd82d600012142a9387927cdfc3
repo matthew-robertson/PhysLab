@@ -1,0 +1,47 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layout_activity_title"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+ 
+    android:gravity="center_horizontal"
+    
+    android:orientation="horizontal"
+    android:weightSum="1.0"
+    tools:context=".TitleActivity" >
+
+    <Button
+        android:id="@+id/button_new_project"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight=".5"
+        android:text="New Project" />
+
+    <Button
+        android:id="@+id/button_open_project"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight=".5"
+        android:text="Open Project" />
+
+    <Button
+        android:id="@+id/button_help"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight=".5"
+        android:text="Help" />
+
+    
+    <Button
+        android:id="@+id/button_exit"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight=".5"
+        android:text="Exit" />
+
+    <!--
+        style="?android:attr/buttonStyleSmall"
+      android:onClick="playButton"
+    -->
+
+</LinearLayout>

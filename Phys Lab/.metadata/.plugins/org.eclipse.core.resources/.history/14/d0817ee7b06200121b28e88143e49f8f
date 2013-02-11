@@ -1,0 +1,63 @@
+package utils.preferences;
+
+import utils.preferences.ChooseProjectDialog.ChooseProjectDialogListener;
+import gui.activities.R;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.content.DialogInterface;
+import android.content.res.Resources;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
+
+public class ConfirmActionDialog extends DialogFragment
+{
+	public interface ConfirmActionDialogListener {
+        public void onActionConfirm(DialogFragment dialog);
+        public void onActionCancel(DialogFragment dialog);
+    }
+	
+	private String confirmMessage;
+	private String cancelMessage;
+	private String title;
+    
+    public ConfirmActionDialog()
+    {
+    	confirmMessage = "Confirm";
+    	cancelMessage = "Cancel";
+    	title = "";
+    }
+    
+    public ConfirmActionDialog(String con, String can, String t)
+    {
+    	confirmMessage = con;
+    	cancelMessage = can;
+    	title = t;
+    }
+    
+    // Use this instance of the interface to deliver action events
+  	ConfirmActionDialogListener mListener;
+    
+  	public Dialog onCreateDialog(Bundle savedInstanceState) {
+        // Build the dialog and set up the button click handlers
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setMessage(title)
+               .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                   public void onClick(DialogInterface dialog, int id) {
+                       // Send the positive button event back to the host activity
+                       mListener.onActionConfirm(ConfirmActionDialog.this);
+                   }
+               })
+               .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                   public void onClick(DialogInterface dialog, int id) {
+                       // Send the negative button event back to the host activity
+                       mListener.onActionCancel(ConfirmActionDialog.this);
+                   }
+               });
+        return builder.create();
+    }
+}

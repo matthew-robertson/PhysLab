@@ -13,7 +13,7 @@ public class ChooseProjectDialog extends DialogFragment
 {
 	private String[] listArgs;
 	private int internalFinalIndex;
-    
+	private String MESSAGE = "Select a project to open: ";
     /* The activity that creates an instance of this dialog fragment must
      * implement this interface in order to receive event callbacks.
      * Each method passes the DialogFragment in case the host needs to query it. */
@@ -32,7 +32,6 @@ public class ChooseProjectDialog extends DialogFragment
     	this.listArgs = a_str;
     	this.internalFinalIndex = intIndex;
     }
-    
     
     // Use this instance of the interface to deliver action events
     ChooseProjectDialogListener mListener;
@@ -56,7 +55,7 @@ public class ChooseProjectDialog extends DialogFragment
     public Dialog onCreateDialog(Bundle savedInstanceState) 
     {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle("Which project would you like to open?")
+        builder.setTitle(MESSAGE)
                .setItems(listArgs, new DialogInterface.OnClickListener() 
                {
                    public void onClick(DialogInterface dialog, int which) 

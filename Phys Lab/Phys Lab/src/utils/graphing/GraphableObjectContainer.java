@@ -9,19 +9,16 @@ public class GraphableObjectContainer
 	private GraphableObject positionTimeGraph;
 	private GraphableObject velocityTimeGraph;
 	private GraphableObject accelerationTimeGraph;
+	private GraphableObject xTimeGraph;
+	private GraphableObject yTimeGraph;
 	
-	public GraphableObjectContainer(GraphableObject positionTime, GraphableObject velocityTime, GraphableObject accelerationTime)
-	{
-		this.positionTimeGraph = positionTime;
-		this.velocityTimeGraph = velocityTime;
-		this.accelerationTimeGraph = accelerationTime;	
-	}
-
 	public GraphableObjectContainer()
 	{
 		this.positionTimeGraph = new GraphableObject();
 		this.velocityTimeGraph = new GraphableObject();
 		this.accelerationTimeGraph = new GraphableObject();
+		this.xTimeGraph = new GraphableObject();
+		this.yTimeGraph = new GraphableObject();
 	}
 	
 	public GraphableObjectContainer setPositionTimeGraph(GraphableObject ptg)
@@ -42,6 +39,18 @@ public class GraphableObjectContainer
 		return this;
 	}
 	
+	public GraphableObjectContainer setXTimeGraph(GraphableObject obj)
+	{
+		this.xTimeGraph = obj;
+		return this;
+	}
+	
+	public GraphableObjectContainer setYTimeGraph(GraphableObject obj)
+	{
+		this.yTimeGraph = obj;
+		return this;
+	}
+	
 	public GraphableObject getPositionTimeGraph()
 	{
 		return positionTimeGraph;
@@ -55,5 +64,15 @@ public class GraphableObjectContainer
 	public GraphableObject getAccelerationTimeGraph()
 	{
 		return accelerationTimeGraph;
+	}
+	
+	public GraphableObject getXTimeGraph()
+	{
+		return xTimeGraph;
+	}
+	
+	public GraphableObject getYTimeGraph()
+	{
+		return yTimeGraph;
 	}
 }

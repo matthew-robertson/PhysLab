@@ -1,0 +1,227 @@
+package gui.activities;
+
+import java.io.File;
+
+import project.Project;
+
+import utils.file.FileUtils;
+import utils.preferences.ChooseProjectDialog;
+import utils.preferences.MessageBox;
+import utils.preferences.StringSelectDialog;
+import utils.preferences.VideoConfirmDialogFragment;
+
+import global.StaticVariables;
+import gui.components.AutoResizeTextView;
+import android.os.Bundle;
+import android.os.Environment;
+import android.app.Activity;
+import android.app.DialogFragment;
+import android.content.Intent;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+
+public class TitleActivity extends Activity 
+		implements VideoConfirmDialogFragment.VideoConfirmDialogListener, ChooseProjectDialog.ChooseProjectDialogListener,
+		StringSelectDialog.StringSelectDialogListener
+{
+	public final static String TITLE_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String TITLE_KEY = "gui.activities.TitleActivity";
+	
+	protected void onCreate(Bundle savedInstanceState) 
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_title);
+	
+		
+	}
+
+	public boolean onCreateOptionsMenu(Menu menu) 
+	{
+		getMenuInflater().inflate(R.menu.activity_title, menu);
+		return true;
+	}
+	
+	private String[] queryForFilesInternally() {
+		File[] files = getFilesDir().listFiles();
+		String[] strings = new String[files.length];
+		int totalValues = 0;
+		for (int i = 0; i < strings.length; i++) 
+		{
+			if(files[i].toString().endsWith(".physdat"))
+			{
+				strings[totalValues] = trimFilepath(files[i].toString());
+				totalValues++;						
+			}
+		}
+		
+		String[] betterValues = new String[totalValues];
+		for(int i = 0; i < totalValues; i++)
+		{
+			betterValues[i] = strings[i];
+		}
+		
+		return betterValues;
+	}
+	
+	public String trimFilepath(String path) {
+		return path.substring(path.lastIndexOf("/") + 1, path.indexOf(".physdat"));
+	}
+
+	private String[] queryForFilesExternally() {
+		if (canReadStorage()) {
+			File[] files = getExternalFilesDir(null).listFiles();
+			String[] strings = new String[files.length];
+			int totalValues = 0;
+			for (int i = 0; i < strings.length; i++) 
+			{
+				if(files[i].toString().endsWith(".physdat"))
+				{
+					strings[totalValues] = trimFilepath(files[i].toString());
+					totalValues++;						
+				}
+			}
+			
+			String[] betterValues = new String[totalValues];
+			for(int i = 0; i < totalValues; i++)
+			{
+				betterValues[i] = strings[i];
+			}
+			return betterValues;
+		}
+
+		return new String[] {};
+	}
+	
+	public boolean canReadStorage() {
+		String state = Environment.getExternalStorageState();
+		if (Environment.MEDIA_MOUNTED.equals(state)
+				|| Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+			// We can read
+			return true;
+		}
+		return false;
+	}
+
+	public void openVideoSelect() 
+	{
+		if(StaticVariables.mainProject == null)
+		{
+			MessageBox msgbox = new MessageBox("Error creating project, please try again.");
+			msgbox.show(getFragmentManager(), "err_video_select_no_project");
+		}
+		else
+		{
+			Intent intent = new Intent(this, VideoSelect.class);
+			startActivity(intent);
+		}
+	}
+	
+	public void openVideoActivity() 
+	{
+		if(StaticVariables.mainProject == null)
+		{
+			MessageBox msgbox = new MessageBox("Error creating project, please try again.");
+			msgbox.show(getFragmentManager(), "err_vid_act_no_project");
+		}
+		else
+		{
+			Intent intent = new Intent(this, VideoActivity.class);
+			startActivity(intent);
+		}
+	}
+	
+	public int getWidth() {
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.x;
+	}
+
+	public int getHeight() {
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.y;
+	}
+	
+	
+	public void beginOpeningProject(View view)
+    {
+    	String[] mergedFilePaths;
+    	String[] internal = queryForFilesInternally();
+    	String[] external = queryForFilesExternally();
+    	mergedFilePaths = new String[internal.length + external.length];
+    	
+    	for(int i = 0; i < internal.length; i++)
+    	{
+    		mergedFilePaths[i] = internal[i];
+    	}
+    	for(int i = 0; i < external.length; i++)
+    	{
+    		mergedFilePaths[internal.length + i] = external[i];
+    	}
+    	
+    	DialogFragment newFragment = new ChooseProjectDialog(mergedFilePaths, internal.length - 1);
+	    newFragment.show(getFragmentManager(), "open_project");    	
+    }
+    
+    public void newProject(View view)
+    {
+    	DialogFragment newFragment = new VideoConfirmDialogFragment();
+	    newFragment.show(getFragmentManager(), "new_project"); 
+    }
+    
+    public void onDialogPositiveClick(DialogFragment dialog, String message) 
+	{
+    	//Confirm new 
+    	StaticVariables.mainProject = new Project(this);
+    	StaticVariables.mainProject.setDimensions(getWidth(), getHeight());
+	
+    	openVideoSelect(); 
+	}
+
+	public void onDialogNegativeClick(DialogFragment dialog, String message) 
+	{
+	}
+    
+	public void openProject(DialogFragment dialog, String filePath, boolean storedInternally)
+	{
+		Project proj = new Project(this);
+		
+		if(proj != null)
+		{
+			StaticVariables.mainProject = proj;
+			openVideoActivity();
+		}
+	}
+	
+	private String KEY_MESSAGE_OPEN = "type=open";
+	private String KEY_MESSAGE_DELETE = "type=delete";
+	
+	public void deleteProject(View view)
+	{
+		String[] mergedFilePaths;
+    	String[] internal = queryForFilesInternally();
+    	String[] external = queryForFilesExternally();
+    	mergedFilePaths = new String[internal.length + external.length];
+    	
+    	for(int i = 0; i < internal.length; i++)
+    	{
+    		mergedFilePaths[i] = internal[i];
+    	}
+    	for(int i = 0; i < external.length; i++)
+    	{
+    		mergedFilePaths[internal.length + i] = external[i];
+    	}
+    	
+    	DialogFragment newFragment = new StringSelectDialog(mergedFilePaths, internal.length - 1, KEY_MESSAGE_DELETE);
+	    newFragment.show(getFragmentManager(), "open_project");   
+	}
+
+	@Override
+	public void selectedValue(DialogFragment dialog, String value,
+			boolean storedInternally) {
+		new FileUtils().deleteFile(this, storedInternally, value);
+	}
+}

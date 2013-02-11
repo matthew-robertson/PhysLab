@@ -10,12 +10,23 @@ import android.os.Bundle;
 
 public class VideoConfirmDialogFragment extends DialogFragment
 {
+	private String title = "";
 	    /* The activity that creates an instance of this dialog fragment must
 	     * implement this interface in order to receive event callbacks.
 	     * Each method passes the DialogFragment in case the host needs to query it. */
 	    public interface VideoConfirmDialogListener {
 	        public void onDialogPositiveClick(DialogFragment dialog, String message);
 	        public void onDialogNegativeClick(DialogFragment dialog, String message);
+	    }
+	    
+	    public VideoConfirmDialogFragment()
+	    {
+	    	
+	    }
+	    
+	    public VideoConfirmDialogFragment(String title)
+	    {
+	    	this.title = title;
 	    }
 	    
 	    // Use this instance of the interface to deliver action events
@@ -40,7 +51,7 @@ public class VideoConfirmDialogFragment extends DialogFragment
 	    public Dialog onCreateDialog(Bundle savedInstanceState) {
 	        // Build the dialog and set up the button click handlers
 	        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-	        builder.setMessage("Are you sure you want start a new project? (will not save)")
+	        builder.setMessage(title)
 	               .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
 	                   public void onClick(DialogInterface dialog, int id) {
 	                       // Send the positive button event back to the host activity

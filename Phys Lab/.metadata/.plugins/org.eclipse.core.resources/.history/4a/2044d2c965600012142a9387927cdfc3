@@ -1,0 +1,8 @@
+package gui.components;
+
+import android.media.MediaPlayer;
+
+public class MediaPlayerSeeker extends MediaPlayer
+{
+	
+}

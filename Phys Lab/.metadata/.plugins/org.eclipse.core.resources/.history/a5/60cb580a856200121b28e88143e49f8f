@@ -1,0 +1,73 @@
+package utils.file;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+import utils.action.StackAction;
+import utils.graphing.Boundary;
+import utils.graphing.GraphableObjectContainer;
+import utils.graphing.Point;
+import utils.graphing.WritablePoint;
+
+public class WritableProject 		
+		implements Serializable
+{
+	private static final long serialVersionUID = 1L;
+	public String projectName;
+	public double width;
+	public double height;
+	public WritablePoint origin;
+	public WritableBoundary videoBounds;
+	public WritableBoundary scaleBoundary;
+	public String scaleTextValue = "";
+	public String videoPath = "";
+	public boolean preferenceSaveInternally;
+	public int preferenceDistanceMeasure;
+	public int frameSkip = 1;
+	public List<WritablePoint> points;
+	public boolean dataChanged;
+	
+	public void setPoints(List<Point> pointList)
+	{
+		if(pointList != null)
+		{
+			points = new ArrayList<WritablePoint>();
+			
+			for(int i = 0; i < pointList.size(); i++)
+			{
+				points.add(new WritablePoint(pointList.get(i)));
+			}
+		}
+	}	
+	
+	public void setOrigin(Point point)
+	{
+		if(point != null)
+		{
+			origin = new WritablePoint(point);
+		}
+	}
+	
+	public void setVideoBounds(Boundary bounds)
+	{
+		if(bounds != null)
+		{
+			videoBounds = new WritableBoundary();
+			videoBounds.setPoints(bounds.points);
+			videoBounds.totalRotLeft = bounds.totalRotLeft;
+			videoBounds.totalRotRight = bounds.totalRotRight;
+		}
+	}
+	
+	public void setScaleBounds(Boundary bounds)
+	{
+		if(bounds != null)
+		{
+			scaleBoundary = new WritableBoundary();
+			scaleBoundary.setPoints(bounds.points);	
+			scaleBoundary.totalRotLeft = bounds.totalRotLeft;
+			scaleBoundary.totalRotRight = bounds.totalRotRight;
+		}
+	}
+}

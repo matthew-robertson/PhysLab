@@ -1,0 +1,14 @@
+package global;
+
+import java.io.File;
+
+import project.Project;
+import android.graphics.Bitmap;
+
+public class StaticVariables {
+	public static Project mainProject;
+	public static Bitmap scaleImage;	
+	public static boolean firstLaunch = true;
+	public static boolean clipChanged = false;
+	public static File clip;
+}

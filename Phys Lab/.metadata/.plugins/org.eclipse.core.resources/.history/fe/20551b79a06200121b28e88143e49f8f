@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_video_relative_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal" >
+
+    <EditText
+        android:id="@+id/frame_number"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@+id/button1"
+        android:inputType="number"
+        android:orientation="vertical"
+        android:text="0"
+        android:visibility="invisible" />
+
+    <SeekBar
+        android:id="@+id/seekControl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/frame_number"
+        android:layout_alignParentLeft="true" />
+
+    <VideoView
+        android:id="@+id/track"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/seekControl"
+        android:layout_centerHorizontal="true" />
+
+    <Button
+        android:id="@+id/button1"
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignTop="@+id/frame_number"
+        android:onClick="playButton"
+        android:text="@string/button_1_text" />
+
+    <android.gesture.GestureOverlayView
+        android:id="@+id/gestureOverlayView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/seekControl"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true" >
+    </android.gesture.GestureOverlayView>
+
+    <EditText
+        android:id="@+id/scale_text_zone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:inputType="number"
+        android:visibility="invisible" >
+
+        <requestFocus />
+    </EditText>
+
+    <ImageView
+        android:id="@+id/image_view_horizontal_axis"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:src="@drawable/horizontal_axis"
+        android:scaleType="fitCenter"
+        android:visibility="invisible" />
+
+    <ImageView
+        android:id="@+id/image_view_vertical_axis"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:scaleType="fitCenter"
+
+        android:src="@drawable/vertical_axis"
+        android:visibility="invisible" 
+        android:contentDescription="TODO"/>
+
+    <ImageView
+        android:id="@+id/image_view_scale"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/scale"
+        android:visibility="invisible" />
+
+    <LinearLayout
+        android:id="@+id/action_bar_layout"
+        android:layout_width="240dp"
+        android:layout_height="90dp"
+        android:layout_centerHorizontal="true"
+        android:orientation="horizontal"
+        android:paddingTop="30dp" >
+
+        <ImageView
+            android:id="@+id/action_bar_scale_left"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:contentDescription="TODO"
+            android:padding="6dp"
+            android:src="@drawable/icon_scale_left_off" />
+
+        <ImageView
+            android:id="@+id/action_bar_scale_right"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:contentDescription="TODO"
+            android:padding="6dp"
+            android:src="@drawable/icon_scale_right_off" />
+
+       
+
+        
+        <ImageView
+            android:id="@+id/action_bar_plot_points"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:contentDescription="TODO"
+            android:padding="6dp"
+            android:src="@drawable/icon_plot_points_off" />
+        
+         <ImageView
+            android:id="@+id/action_bar_set_origin"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:contentDescription="TODO"
+            android:padding="6dp"
+            android:src="@drawable/icon_origin_off" />
+        
+        </LinearLayout>
+
+</RelativeLayout>

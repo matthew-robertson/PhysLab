@@ -44,7 +44,7 @@
                 </ScrollView>
             </LinearLayout>
 
-            <!-- Tab 1 -->
+            <!-- Tab 1 (Position/Time) -->
 
             <LinearLayout
                 android:id="@+id/tab1"
@@ -53,17 +53,17 @@
                 android:orientation="vertical"
                 android:paddingTop="60dp" >
 
-                <utils.drawing.Panel
-                    android:id="@+id/panel_position_time"
+                <com.androidplot.xy.XYPlot
+                    android:id="@+id/position_time_plot"
                     android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="0dp"
-                    android:layout_marginRight="0dp"
-                    android:layout_marginTop="3dp"
-                    android:background="#FFFFFF" />
+                    android:layout_height="fill_parent"
+                    android:layout_marginLeft="0px"
+                    android:layout_marginRight="0px"
+                    android:layout_marginTop="0px"
+                    title="Position vs Time" />
             </LinearLayout>
 
-            <!-- Tab 2 -->
+            <!-- Velocity Time -->
 
             <LinearLayout
                 android:id="@+id/tab2"
@@ -72,33 +72,52 @@
                 android:orientation="vertical"
                 android:paddingTop="60dp" >
 
-                <utils.drawing.Panel
-                    android:id="@+id/panel_velocity_time"
+                <com.androidplot.xy.XYPlot
+                    android:id="@+id/velocity_time_plot"
                     android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="0dp"
-                    android:layout_marginRight="0dp"
-                    android:layout_marginTop="3dp"
-                    android:background="#FFFFFF" />
+                    android:layout_height="fill_parent"
+                    android:layout_marginLeft="0px"
+                    android:layout_marginRight="0px"
+                    android:layout_marginTop="0px"
+                    title="Velocity vs Time" />
             </LinearLayout>
 
-            <!-- Tab 3 -->
+            <!-- X / Time -->
 
             <LinearLayout
-                android:id="@+id/tab3"
+                android:id="@+id/tab_x"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent"
                 android:orientation="vertical"
                 android:paddingTop="60dp" >
 
-                <utils.drawing.Panel
-                    android:id="@+id/panel_acceleration_time"
+                <com.androidplot.xy.XYPlot
+                    android:id="@+id/x_time_plot"
                     android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="0dp"
-                    android:layout_marginRight="0dp"
-                    android:layout_marginTop="3dp"
-                    android:background="#FFFFFF" />
+                    android:layout_height="fill_parent"
+                    android:layout_marginLeft="0px"
+                    android:layout_marginRight="0px"
+                    android:layout_marginTop="0px"
+                    title="X vs Time" />
+            </LinearLayout>
+
+            <!-- Y Time -->
+
+            <LinearLayout
+                android:id="@+id/tab_y"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:orientation="vertical"
+                android:paddingTop="60dp" >
+
+                <com.androidplot.xy.XYPlot
+                    android:id="@+id/y_time_plot"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:layout_marginLeft="0px"
+                    android:layout_marginRight="0px"
+                    android:layout_marginTop="0px"
+                    title="Y vs Time" />
             </LinearLayout>
         </FrameLayout>
     </TabHost>

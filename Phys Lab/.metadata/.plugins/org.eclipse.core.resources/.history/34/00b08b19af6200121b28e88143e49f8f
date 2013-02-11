@@ -1,0 +1,56 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <!-- Open Graphs -->
+    <item
+        android:id="@+id/action_bar_graph"
+        android:enabled="true"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_graph"
+        android:titleCondensed="@string/action_bar_graph"
+        android:visible="true"/>
+
+    <!-- Project Dropdown menu -->
+    <item
+        android:id="@+id/action_bar_file_menu"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_file_menu">
+        <menu>
+
+            <!-- Save Project -->
+            <item
+                android:id="@+id/action_bar_save_video"
+                android:orderInCategory="100"
+                android:showAsAction="ifRoom|withText"
+                android:title="@string/action_bar_save"/>
+            <!-- New Project -->
+            <item
+                android:id="@+id/action_bar_new_project_video"
+                android:orderInCategory="100"
+                android:showAsAction="ifRoom|withText"
+                android:title="@string/action_bar_new_project"/>
+            <!-- Open Project -->
+            <item
+                android:id="@+id/action_bar_open_project_video"
+                android:orderInCategory="100"
+                android:showAsAction="ifRoom|withText"
+                android:title="@string/action_bar_open_project"/>
+        </menu>
+    </item>
+    
+    <!-- Preferences -->
+    <item
+        android:id="@+id/preferences_item"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_preferences"/>
+
+    <!-- Change Video -->
+    <item
+        android:id="@+id/action_bar_change_video"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_change_video"/>
+
+</menu>

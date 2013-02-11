@@ -11,8 +11,8 @@ public class ClickBoundary
 	public ClickBoundary()
 	{
 		this.points = new Point[4];
-	}
-	
+	}	
+		
 	public ClickBoundary(Point[] points)
     {
     	this.points = points;

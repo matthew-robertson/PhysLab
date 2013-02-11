@@ -1,0 +1,55 @@
+package utils.file;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+import utils.action.StackAction;
+import utils.graphing.Boundary;
+import utils.graphing.GraphableObjectContainer;
+import utils.graphing.Point;
+import utils.graphing.WritablePoint;
+
+public class WritableProject 		
+		implements Serializable
+{
+	private static final long serialVersionUID = 1L;
+	public String projectName;
+	public double width;
+	public double height;
+	public WritablePoint origin;
+	public WritableBoundary videoBounds;
+	public WritableBoundary scaleBoundary;
+	public String scaleTextValue = "";
+	public String videoPath = "";
+	public boolean preferenceSaveInternally;
+	public int preferenceDistanceMeasure;
+	public int frameSkip = 1;
+	public List<WritablePoint> points;
+	public boolean dataChanged;
+	
+	public void setPoints(List<Point> pointList)
+	{
+		points = new ArrayList<WritablePoint>();
+		
+		for(int i = 0; i < pointList.size(); i++)
+		{
+			points.add(new WritablePoint(pointList.get(i)));
+		}
+	}	
+	
+	public void setOrigin(Point point)
+	{
+		
+	}
+	
+	public void setVideoBounds(Boundary bounds)
+	{
+		
+	}
+	
+	public void setScaleBounds(Boundary bounds)
+	{
+		
+	}
+}

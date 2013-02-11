@@ -2,21 +2,16 @@ package utils.graphing;
 
 import java.io.Serializable;
 
+import utils.file.WritableBoundary;
+
 
 public class Boundary
 		implements Serializable
-{
-    /**
-	 * 
-	 */
+{    
 	private static final long serialVersionUID = 1L;
 
-	public final Point[] points; // Points making up the boundary
-    
-    public ClickBoundary leftBoundary;
-    public ClickBoundary rightBoundary;
-    public double totalRotLeft = 0;
-    public double totalRotRight = 0;
+	public final Point[] points; // Points making up the boundary   
+    public double totalRot = 0;
     
     public Boundary()
     {
@@ -36,49 +31,20 @@ public class Boundary
     public Boundary(Point[] points)
     {
     	this.points = points;
-    	calculateClickZones();
     }
 
-    public void calculateClickZones()
+    public Boundary(WritableBoundary bounds) 
     {
-    	double width = points[1].getX() - points[0].getX();
-    	double height = points[3].getY() - points[0].getY();
-    	
-    	if(width < 50)
-    	{
-    		width = width / 2;
-    	}
-    	else 
-    	{
-    		width = (width * 0.3 < 25) ? 25: width * 0.3;
-    	}
-    	
-    	double left_left = points[0].getX();
-		double top_left = points[0].getY();
-		double right_left = left_left + width;
-		double bottom_left = top_left + height;
-	
-    	leftBoundary = new ClickBoundary(new Point[] {
-			 	new Point(left_left, top_left),
-			 	new Point(right_left, top_left),
-			 	new Point(right_left, bottom_left),
-			 	new Point(left_left, bottom_left) 
-			 });
-    
-    	double right_right = points[2].getX();
-		double bottom_right = points[2].getY();
-		double left_right = right_right - width;
-		double top_right = right_right - height;
-	
-    	rightBoundary = new ClickBoundary(new Point[] {
-			 	new Point(left_right, top_right),
-			 	new Point(right_right, top_right),
-			 	new Point(right_right, bottom_right),
-			 	new Point(left_right, bottom_right) 
-			 });
-    }
-    		
-    
+    	points = new Point[bounds.points.length];
+		
+		for(int i = 0; i < points.length; i++)
+		{
+			points[i] = new Point(bounds.points[i]);
+		}
+		
+		totalRot = bounds.totalRot;
+	}
+
     /**
      * Return true if the given point is contained inside the boundary.
      * See: http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
@@ -212,20 +178,11 @@ public class Boundary
     		pointLine2 = pointBetweenTwoPoints(points[3], points[2], Math.abs(lengthChange));
     	}
     	
-    	/*
-    	if(pointLine1.getX() > 200)
-    	{
-    		System.out.println("!");
-    	}
-    	*/
-    	
     	if(pointLine1 != null)
     		points[0] = pointLine1;
     	if(pointLine2 != null)
     		points[3] = pointLine2;
-    	
-    	//Fine to here
-    	    	
+    	    	    	
     	double width = currentLength;
     	
     	if(width < 50)
@@ -236,22 +193,6 @@ public class Boundary
     	{
     		width = (width * 0.3 < 25) ? 25: width * 0.3;
     	}
-    	
-    	Point pointLine1_1 = pointBetweenTwoPoints(points[0], points[1], Math.abs(width));
-    	
-    	Point pointLine2_1 = pointBetweenTwoPoints(points[3], points[2], Math.abs(width));
-        
-    	/*
-    	if(pointLine1_1.getX() > 200)
-    	{
-    		System.out.println("!!");
-    	}
-    	*/
-    	leftBoundary.points[1] = pointLine1_1;
-    	leftBoundary.points[2] = pointLine2_1;
-    	leftBoundary.points[0] = new Point(points[0]);
-    	leftBoundary.points[3] = new Point(points[3]);
-    	
     }
     
     public void updateLengthRight(double newLength)
@@ -285,20 +226,12 @@ public class Boundary
     		pointLine1 = pointBetweenTwoPoints(points[1], points[0], Math.abs(lengthChange));
     		pointLine2 = pointBetweenTwoPoints(points[2], points[3], Math.abs(lengthChange));
     	}
-    	
-    	/*
-    	if(pointLine1.getX() > 200)
-    	{
-    		System.out.println("!");
-    	}
-    	*/
-    	
+    	    	
     	if(pointLine1 != null)
     		points[1] = pointLine1;
     	if(pointLine2 != null)
     		points[2] = pointLine2;
     	
-    	//Fine to here
     	    	
     	double width = currentLength;
     	
@@ -310,28 +243,10 @@ public class Boundary
     	{
     		width = (width * 0.3 < 25) ? 25: width * 0.3;
     	}
-    	
-    	Point pointLine1_1 = pointBetweenTwoPoints(points[1], points[0], Math.abs(width));
-    	
-    	Point pointLine2_1 = pointBetweenTwoPoints(points[2], points[3], Math.abs(width));
-        
-    	/*
-    	if(pointLine1_1.getX() > 200)
-    	{
-    		System.out.println("!!");
-    	}
-    	*/
-    	
-    	rightBoundary.points[0] = pointLine1_1;
-    	rightBoundary.points[3] = pointLine2_1;
-    	
-    	rightBoundary.points[1] = new Point(points[1]);
-    	rightBoundary.points[2] = new Point(points[2]);
-    	
-
-    	
+    	    	
     }
     
+   
     public void rotateOnRightCenter(double angle)
     {
     //	angle = 180.0;
@@ -340,19 +255,7 @@ public class Boundary
     	for(int i = 0; i < points.length; i++)
     	{
     		points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, points[i]);
-    	}
-    	
-    	for(int i = 0; i < leftBoundary.points.length; i++)
-    	{
-    		leftBoundary.points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, leftBoundary.points[i]);
-    	}
-    	
-    	for(int i = 0; i < rightBoundary.points.length; i++)
-    	{
-    		rightBoundary.points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, rightBoundary.points[i]);
-    	}
-
-    	
+    	}    	
     }
     
     public void rotateOnLeftCenter(double angle)
@@ -363,29 +266,8 @@ public class Boundary
     	{
     		points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, points[i]);
     	}
-    	
-    	for(int i = 0; i < leftBoundary.points.length; i++)
-    	{
-    		leftBoundary.points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, leftBoundary.points[i]);
-    	}
-    	
-    	for(int i = 0; i < rightBoundary.points.length; i++)
-    	{
-    	 	rightBoundary.points[i] = rotate_point(centerPoint.getX(), centerPoint.getY(), angle, rightBoundary.points[i]);
-    	}
     }
-    
-    
-    public boolean isInLeftBounds(float x, float y)
-    {
-    	return leftBoundary.contains(x, y);
-    }
-    
-    public boolean isInRightBounds(float x, float y)
-    {
-    	return rightBoundary.contains(x, y);
-    }
-    
+        
     public Point centerOfLeftLine()
 	{
 		return new Point((points[3].getX() + points[0].getX()) / 2, (points[3].getY() + points[0].getY()) / 2);

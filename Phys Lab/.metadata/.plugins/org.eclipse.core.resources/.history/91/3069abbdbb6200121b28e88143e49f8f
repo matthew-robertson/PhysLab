@@ -1,0 +1,11 @@
+
+	backdate 15->11
+	
+	[major-cosmetic] add icons, update actionbar icons.
+	
+	//[minor bug] numbers should only go sci-not if <0.1, >1000
+	improve graphs.
+	
+	//[Substancial-Annoyance] preferences in general arent being set on project load. 
+	
+

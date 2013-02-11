@@ -1,8 +1,9 @@
 package utils.graphing;
 
 import java.io.Serializable;
+import java.util.Vector;
 
-import gui.activities.StaticVariables;
+import global.StaticVariables;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
@@ -26,7 +27,6 @@ public class GraphUtils
 		try
 		{
 			scaleInPixels = (MathUtils.lineLength(StaticVariables.mainProject.scaleBoundary.points[0], StaticVariables.mainProject.scaleBoundary.points[1])); 
-				//StaticVariables.mainProject.videoBounds.rightBoundary;
 		}
 		catch(Exception e)
 		{
@@ -40,37 +40,115 @@ public class GraphUtils
 		double y = point.y;
 		double scaleValuePerPixel = scaleValue / scaleInPixels;
 		
-		if(str.equals("1"))
+		if(str.equals("2"))
+		{
+			//Y
+			for(int i = 0; i < points.length; i++)
+				
+			{
+				double value = (y - points[i].y) * scaleValuePerPixel;
+				newPoints[i] = new Point(points[i].timeStamp, value);
+			}
+		}
+		else 
 		{
 			//X
 			for(int i = 0; i < points.length; i++)
 			{
-				double value = points[i].x;
-				value = (value - x) * scaleValuePerPixel;
+				double value = (points[i].x - x) * scaleValuePerPixel;
 				newPoints[i] = new Point(points[i].timeStamp, value);
 			}
-		}
-		else //((str.equals("2"))
-		{
-			//Y
-			for(int i = 0; i < points.length; i++)
-			{
-				double value = points[i].y;
-				value = (y - value) * scaleValuePerPixel;
-				newPoints[i] = new Point(points[i].timeStamp, value);
-			}
+			
+			
 		}
 		
+		container.setXTimeGraph(convertDataToXTime(points, scaleValuePerPixel));
+		container.setYTimeGraph(convertDataToYTime(points, scaleValuePerPixel));
 		container.setPositionTimeGraph(convertDataToPositionTime(newPoints));
-		container.setVelocityTimeGraph(convertDataToVelocityTime(newPoints));
-		container.setAccelerationTimeGraph(convertDataToAccelerationTime(container.getVelocityTimeGraph().getPoints()));
+		container.setVelocityTimeGraph(convertDataToVelocityTime(container.getPositionTimeGraph().getPoints()));
+		//container.setAccelerationTimeGraph(convertDataToAccelerationTime(container.getVelocityTimeGraph().getPoints()));
 		return container;
+	}
+	
+	private GraphableObject convertDataToXTime(Point[] points, double scaleValuePerPixel)
+	{
+		GraphableObject graphable = new GraphableObject();
+		double[] yBounds =  { 0, 0 };
+		Point[] newPoints = new Point[points.length];
+		Point origin = (StaticVariables.mainProject.origin == null) ? new Point(0, 0) : StaticVariables.mainProject.origin;
+		
+		for(int i = 0; i < points.length; i++)
+		{
+			newPoints[i] = new Point(points[i].timeStamp, (points[i].x - origin.x) * scaleValuePerPixel);
+		}
+		
+		graphable.setPoints(sortPointsArrayByTime(newPoints, yBounds)); //<<Prone to reference errors
+		graphable.setGraphType(Graphable.GRAPH_TYPE_X_TIME);
+		graphable.setMinValueY(yBounds[0]);
+		graphable.setMaxValueY(yBounds[1]);
+		try
+		{
+			graphable.setMinValue(graphable.getFirstPoint().getX());
+		}
+		catch(Exception e)
+		{
+			graphable.setMinValue(0);
+		}
+		
+		try
+		{
+			graphable.setMaxValue(graphable.getLastPoint().getX());
+		}
+		catch(Exception e)
+		{
+			graphable.setMaxValue(0);
+		}
+		
+		return graphable;
+	}
+	
+	private GraphableObject convertDataToYTime(Point[] points, double scaleValuePerPixel)
+	{
+		GraphableObject graphable = new GraphableObject();
+		double[] yBounds =  { 0, 0 };
+		Point[] newPoints = new Point[points.length];
+		Point origin = (StaticVariables.mainProject.origin == null) ? new Point(0, 0) : StaticVariables.mainProject.origin;
+		
+		for(int i = 0; i < points.length; i++)
+		{
+			newPoints[i] = new Point(points[i].timeStamp, (origin.y - points[i].y) * scaleValuePerPixel);
+		}
+		
+		graphable.setPoints(sortPointsArrayByTime(newPoints, yBounds)); //<<Prone to reference errors
+		graphable.setGraphType(Graphable.GRAPH_TYPE_Y_TIME);
+		graphable.setMinValueY(yBounds[0]);
+		graphable.setMaxValueY(yBounds[1]);
+		try
+		{
+			graphable.setMinValue(graphable.getFirstPoint().getX());
+		}
+		catch(Exception e)
+		{
+			graphable.setMinValue(0);
+		}
+		
+		try
+		{
+			graphable.setMaxValue(graphable.getLastPoint().getX());
+		}
+		catch(Exception e)
+		{
+			graphable.setMaxValue(0);
+		}
+		
+		return graphable;
 	}
 	
 	private GraphableObject convertDataToPositionTime(Point[] points)
 	{
 		GraphableObject graphable = new GraphableObject();
 		double[] yBounds =  { 0, 0 };
+//convertPointsToPT(points)
 		graphable.setPoints(sortPointsArrayByTime(points, yBounds)); //<<Prone to reference errors
 		graphable.setGraphType(Graphable.GRAPH_TYPE_POSITION_TIME);
 		graphable.setMinValueY(yBounds[0]);
@@ -94,6 +172,27 @@ public class GraphUtils
 		}
 		
 		return graphable;
+	}
+	
+	private Point[] convertPointsToPT(Point[] points)
+	{
+		Point[] newPoints = new Point[points.length];
+		Point origin = (StaticVariables.mainProject.origin == null) ? new Point(0, 0) : StaticVariables.mainProject.origin;
+		
+		for(int i = 0; i < points.length; i++)
+		{
+			float f = (float)(MathUtils.lineLength(origin, points[i]));
+			if(Float.isNaN(f))
+			{
+				newPoints[i] = new Point(points[i].timeStamp, 0);
+			}			
+			else
+			{
+				newPoints[i] = new Point(points[i].timeStamp, f);
+			}
+		}
+		
+		return newPoints;
 	}
 	
 	private GraphableObject convertDataToVelocityTime(Point[] points)
@@ -168,18 +267,27 @@ public class GraphUtils
 			return points;
 		}
 		
-		Point[] newPoints = new Point[points.length];
-		newPoints[0] = points[0];
+		Vector<Point> newPoints = new Vector<Point>();
+		//Point[] newPoints = new Point[points.length];
+		//newPoints.add(points[0]);
 		
 		for(int i = 1; i < points.length; i++)
 		{
-			Point temp = new Point();
-			temp.setX(points[i].getX());
-			temp.setY((float)(points[i].getY() - points[i-1].getY()) / (float)(points[i].getX() - points[i-1].getX()));
-			newPoints[i] = temp;
+			float dx = (float) (points[i].getX() - points[i-1].getX());
+			float dy = (float) (points[i].getY() - points[i-1].getY());
+			
+			float f = (float)(dy / dx);
+			if(Float.isNaN(f))
+			{
+				continue;
+			}			
+			newPoints.add(new Point(points[i-1].getX(), f));
+			newPoints.add(new Point(points[i].getX(), f));
 		}
 			
-		return newPoints;
+		Point[] aPoints = new Point[newPoints.size()];
+		newPoints.copyInto(aPoints);
+		return aPoints;
 	}
 	
 	private Point[] convertPointsToAT(Point[] points)
@@ -188,25 +296,30 @@ public class GraphUtils
 			rough formula:
 			change a = change v / change t = (v2-v1) / (t2-t1)
 		*/
-		
+	
 		if(points.length < 2)
 		{
 			return points;
 		}
 		
-		Point[] newPoints = new Point[points.length];
-		
-		newPoints[0] = points[0];
+		Vector<Point> newPoints = new Vector<Point>();
+		//Point[] newPoints = new Point[points.length];
+		//newPoints.add(points[0]);
 		
 		for(int i = 1; i < points.length; i++)
 		{
-			Point temp = new Point();
-			temp.setX(points[i].getX());
-			temp.setY((float)(points[i].getY() - points[i-1].getY()) / (float)(points[i].getX() - points[i-1].getX()));
-			newPoints[i] = temp;
+			float f = (float)(points[i].getY() - points[i-1].getY()) / (float)(points[i].getX() - points[i-1].getX());
+			if(Float.isNaN(f) || Float.isInfinite(f))
+			{
+				continue;
+			}	
+			newPoints.add(new Point(points[i-1].getX(), f));
+			newPoints.add(new Point(points[i].getX(), f));
 		}
-		
-		return newPoints;
+			
+		Point[] aPoints = new Point[newPoints.size()];
+		newPoints.copyInto(aPoints);
+		return aPoints;
 	}
 		
 	private Point[] sortPointsArrayByTime(Point[] points, double[] yBounds)

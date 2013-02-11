@@ -1,0 +1,20 @@
+	
+	backdate 15->11
+	
+	[major-cosmetic] fix graphical assets
+	
+	//[minor bug] numbers should only go sci-not if <0.1, >1000
+	
+	//[minor][Fix scale to be based on videobounds, not screen size]
+	
+	//replace save with menu button. autosave it.
+	
+	//[Substancial-Annoyance] preferences in general arent being set on project load. 
+	
+	//TODO: minor bug with the right side of the scale, apparently.
+	//TODO: bitmap being retarded when swapping back to VideoActivity (the scale bitmap)
+	
+	[QoL] scale is too large in some res? is it %?
+	
+	[minor bug] the scale doesnt seem to start out sized correctly
+

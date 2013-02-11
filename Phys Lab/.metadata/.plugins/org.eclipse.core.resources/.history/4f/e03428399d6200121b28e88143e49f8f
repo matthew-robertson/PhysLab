@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="title_activity_video">Video</string>
+    <string name="title_activity_preferences">Preferences</string>
+    <string name="title_activity_graphing">Graphs</string>
+    <string name="title_activity_video_select">Video Select</string>
+    <string name="title_activity_title">Phys Lab: Motion</string>
+    
+    <!-- Action Bar Activity_Graphs Strings -->
+    <string name="action_bar_video">Video</string>
+    <string name="action_bar_graph">Graphs</string>
+    <string name="action_bar_save">Save</string>
+    <string name="action_bar_undo">Undo</string>
+    <string name="action_bar_set_scale">Set Scale</string>
+    <string name="action_bar_set_origin">Set Origin</string>
+    <string name="action_bar_export">Export</string>
+    <string name="action_bar_export_text">Export to .txt</string>
+    <string name="action_bar_export_excel">Export to Excel</string>
+    <string name="action_bar_file_menu">Project</string>
+    <string name="action_bar_open_project">Open Project</string>
+    <string name="action_bar_new_project">New Project</string>
+    <string name="action_bar_plot_points_stop">Stop Plotting Points</string>
+    <string name="action_bar_plot_points_start">Start Plotting Points</string>
+    <string name="action_bar_plot_points">Plot Points</string>
+    <string name="action_bar_preferences">Preferences</string>
+    <string name="preference_clear_data">Clear Data</string>
+    <string name="action_bar_close_preferences">Close Preferences</string>
+    <string name="action_bar_change_video">Change Video</string>
+    <string name="preference_save_option_title">Internal Device Storage</string>
+    <string name="preference_save_option_summary">Save project to internal device storage?</string>
+    <string name="preference_clear_data_summary">Clear all recorded data points.</string>
+    <string name="preferences_title_project">Project</string>
+
+    <!--  -->
+    <string name="preference_measure_total_summary">Exclude Y data</string>
+    <string name="preference_measure_total_title">X Value</string>
+    <string name="preference_measure_y_summary">Exclude X data</string>
+    <string name="preference_measure_y_title">Y Value</string>
+    <string name="preference_measure_x_summary">Use both X and Y data</string>
+    <string name="preference_measure_x_title">Total Distance</string>
+    <string name="logo_phys_lab">Logo - Phys Lab</string>
+    <string name="delete_project">Delete Project</string>
+    <string name="open_project">Open Project</string>
+    <string name="new_project">New Project</string>
+
+</resources>

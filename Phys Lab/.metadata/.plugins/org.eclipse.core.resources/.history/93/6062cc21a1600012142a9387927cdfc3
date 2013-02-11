@@ -1,0 +1,29 @@
+	//[significant]Video Doesnt change. oops.
+	
+	
+	//[minor-cosmetic-info]Save progress bar
+	
+	//[major-cosmetic] video not centered in view on large/wide displays. Orients left.
+	
+	
+	//[optimization/minor bug]: Merge Plotting Points code into gesture listener.
+	//[Customization] Add a colour selector for several different things.
+	//[minor] add a confirm dialog on project delete.
+	//[minor bug] numbers should only go sci-not if <0.1, >1000
+	
+	//[minor] improve the error message for no videos
+	//[minor] fix the new project text stuff
+	//[minor] mute the video...
+	//[substancial] the preferences arent applying to the project immediately, until opened.
+	
+	//TODO: minor bug, the editTextPreference is not updating when opening the preferences activity.
+	[minor] preferences in general arent updating...
+	//TODO: minor bug, text-zone bounds don't reset. "oops"
+	//TODO: minor bug with the right side of the scale, apparently.
+	//TODO: slight tweek in VT/AT math for the first point (which is clearly wrong)
+	//TODO: bitmap being retarded when swapping back to VideoActivity (the scale bitmap)
+	//TODO: minor bug, preferences dont update the measure-axis value
+	//TODO: [minor] move videoStep on plot -> plotting point (stepping by accident)
+	
+
+	[significant useful] Fix the frame-display not updating on video watch.

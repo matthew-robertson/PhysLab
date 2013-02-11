@@ -1,0 +1,37 @@
+package utils.file;
+
+import global.StaticVariables;
+import android.content.Context;
+
+
+public class AutosaveThread extends Thread
+{
+	private Context context;
+	public boolean threadIsDead;
+	
+	public AutosaveThread(Context context)
+	{
+		this.context = context;
+		threadIsDead = false;
+	}
+	
+	public void run()
+	{
+		System.out.println("Thread started");
+		
+		while(true)
+		{
+			try {
+				Thread.sleep(30000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				threadIsDead = true;
+				break;
+			}
+			
+			new FileUtils().save(context, StaticVariables.mainProject.preferenceSaveInternally, StaticVariables.mainProject);
+			
+			System.out.println("Saving!");
+		}		
+	}
+}

@@ -1,0 +1,9 @@
+
+	backdate 15->11
+	
+	[major-cosmetic] add icons, update actionbar icons.
+		
+	[Substancial-Annoyance] preferences in general arent being set on project load. 
+	
+
+bug: plot points doesnt work when swapping back - > video doesnt keep time.

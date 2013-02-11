@@ -1,21 +1,22 @@
 package utils.graphing;
 
-import java.io.Serializable;
-
 import android.widget.ImageView;
 
-public class Point 
-		implements Serializable
+public class Point extends WritablePoint
 {
 	private static final long serialVersionUID = 1L;
-	public double x;
-	public double y;
 	public ImageView imageView;
-	public double timeStamp;
 	
 	public Point(Point point)
 	{
 		this.imageView = point.imageView;
+		this.x = point.x;
+		this.y = point.y;
+		this.timeStamp = point.timeStamp;
+	}
+	
+	public Point(WritablePoint point)
+	{
 		this.x = point.x;
 		this.y = point.y;
 		this.timeStamp = point.timeStamp;
@@ -64,51 +65,15 @@ public class Point
 		return this;
 	}
 	
-	public Point setX(double x)
-	{
-		this.x = x;
-		return this;
-	}
-	
-	public Point setY(double y)
-	{
-		this.y = y;
-		return this;
-	}
-	
 	public Point setTimeStamp(double t)
 	{
 		this.timeStamp = t;
 		return this;
 	}
 	
-	public double getTimeStamp()
-	{
-		return timeStamp;
-	}
-	
-	public double getX()
-	{
-		return x;
-	}
-	
-	public double getY()
-	{
-		return y;
-	}
-	
 	public ImageView getImageView()
 	{
 		return imageView;
-	}
-	
-	 /**
-     * Compares a point to this point by time value
-	 * @return [this is invalid]-1 if the time value is lower, 0 if the time value is the same, 1 if the time value is greater
-     */
-	public int compareTo(Point point)
-	{
-		return (point.timeStamp < timeStamp) ? 1 : (point.timeStamp == timeStamp) ? 0 : -1; 
 	}
 	
 	//Point labels? X="", Y=""?

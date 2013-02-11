@@ -1,0 +1,8 @@
+	
+	[major-cosmetic] add icons, update actionbar icons.
+		
+	[Substancial-Annoyance] preferences in general arent being set on project load. 
+	
+	wtf is the API 15 call?
+
+bug: plot points doesnt work when swapping back - > video doesnt keep time.

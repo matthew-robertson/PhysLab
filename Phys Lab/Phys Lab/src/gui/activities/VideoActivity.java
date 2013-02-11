@@ -1,32 +1,37 @@
 package gui.activities;
 
+import global.StaticVariables;
+
 import java.io.File;
 
-import project.OptionsObject;
 import project.Project;
-import utils.action.Action;
-import utils.action.ActionAdd;
-import utils.action.EnumAction;
 import utils.action.StackAction;
+import utils.file.FileUtils;
 import utils.graphing.Boundary;
 import utils.graphing.ClickBoundary;
 import utils.graphing.GraphableObjectContainer;
-import utils.graphing.MathUtils;
 import utils.graphing.Point;
+import utils.graphing.ScaleBoundary;
 import utils.preferences.ChooseProjectDialog;
-import utils.preferences.MessageBox;
+import utils.preferences.ConfirmActionDialog;
 import utils.preferences.VideoConfirmDialogFragment;
 import android.app.Activity;
 import android.app.DialogFragment;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.drawable.Drawable;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.Display;
 import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -35,80 +40,52 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 import android.widget.EditText;
-import android.widget.FrameLayout.LayoutParams;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
-import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.MediaController;
-import android.widget.NumberPicker;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.VideoView;
 
 public class VideoActivity extends Activity 
-		implements VideoConfirmDialogFragment.VideoConfirmDialogListener, ChooseProjectDialog.ChooseProjectDialogListener, 
-		GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener
+		implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener,
+		ConfirmActionDialog.ConfirmActionDialogListener
 {
 	public final static String MAIN_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
 	public final static String NAME_ACTIVITY_MAIN = "main_activity";
-	
+	public final static String KEY_INTENT_WRN_MSG_CHANGE_VIDEO = "message.video.change.wrn";
+	public final static String ERROR_EXTERNAL_STORAGE_NOT_READABLE = "We don't appear to have read rights on your device's storage device (most likely an SD card).";
+    private int videoCheckDelay = 1000;
+
 	private boolean plottingPoints;
-	private Menu menu;
 	private GestureDetector mDetector; 
 	private boolean isSettingOrigin;
 	private int TOP_PADDING = 75;	
-	private final int AXIS_SIZE = 7; // half the actual size (reduces math)
+	private final int AXIS_SIZE = 15; // half the actual size (reduces math)
 	private boolean isSettingScaleLeft;
 	private boolean isSettingScaleRight;
-	private final int TICKS_PER_SECOND = 20;
-	private final int SKIP_TICKS = 1000 / TICKS_PER_SECOND;
-	private final int MAX_FRAMESKIP = 200000000;//5;
-	private long next_game_tick = System.currentTimeMillis();
-	private int loops; 
 	private boolean isScaleSet = false;
-	//Move this to the project
 	private boolean topPaddingUpdated = false;
-	private final String POSITIVE_MESSAGE = "Set Origin";
-	private final String NEGATIVE_MESSAGE = "Cancel Set Origin";
-	private final String STOP_PLOTTING_POINTS = "Stop Plotting Points";
-    private final String START_PLOTTING_POINTS = "Start Plotting Points";
-        
-	private boolean isScaleMeasureDisplayed;
 	public static MediaController mediaController;
 	public static VideoView videoView;
-	public static File clip;
 	public static long vidLength;
-	public static NumberPicker  stepAmount;
+	public static EditText frameSelected;
 	public static SeekBar seeker;
-	
-	private ClickBoundary textBounds;
 	private RelativeLayout layout;
-	
-	public final static String KEY_INTENT_WRN_MSG_CHANGE_VIDEO = "message.video.change.wrn";
-	
-	//TODO: open files is possibly fixed. Needs better testing.  
-	//TODO: Legit video testing
-	
-	//TODO: [low priority] delete projects.
-	//TODO: minor bug, the editTextPreference is not updating when opening the preferences activity.
-	//TODO: minor bug, text-zone bounds don't reset. "oops"
-	//TODO: minor bug with the right side of the scale, apparently.
-	//TODO: slight tweek in VT/AT math for the first point (which is clearly wrong)
-	//TODO: bitmap being retarded when swapping back to VideoActivity (the scale bitmap)
-	//TODO: minor bug, preferences dont update the measure-axis value
-	
-	/**
-	 * Probable issues: Project Swapping.
-	 * 		Known Issue: Preferences dont update appropriately. They do get updated when a new project is created.
-	 * 		[Test] See if the saving issue (where the project was always the default) has been fixed with the oncreate() change.
-	 */
+    private boolean updatedFrame = false;
+    private int lasttime = 0;
+    private boolean redraw;
+    private boolean ignoreTextEvent = false;
+    private Boundary actionbarBoundary;
+	private ClickBoundary textBounds;
+	private boolean isRemovingPoints = false;
 	
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video);        
-        
         
         plottingPoints = false;
         
@@ -120,45 +97,19 @@ public class VideoActivity extends Activity
         // Instantiate the gesture detector with the
         // application context and an implementation of
         // GestureDetector.OnGestureListener
-        mDetector = new GestureDetector(this,this);
-        // Set the gesture detector as the double tap
-        // listener.
+        mDetector = new GestureDetector(this, this);
+        // Set the gesture detector as the double tap listener
         mDetector.setOnDoubleTapListener(this);
-        
         
         topPaddingUpdated = false;
         
-        //PreferenceManager.setDefaultValues(this, R.xml.preferences_menu, false);
-        videoView = (VideoView) findViewById(R.id.track);  
-        Intent i = getIntent();        
-        
-        try
+        videoView = (VideoView) findViewById(R.id.track);
+               
+        if (StaticVariables.clip != null && StaticVariables.clip.exists())
         {
-        	String extraString = i.getStringExtra(VideoSelect.VIDEO_SELECT_KEY);
-        	
-        	if(!StaticVariables.mainProject.videoPath.equals("") && !extraString.equals(StaticVariables.mainProject.videoPath))
-        	{
-        		clearData();
-        	}
-
-			StaticVariables.mainProject.videoPath = extraString;
-        	
-	        //Check to make sure we can actually read the external memory
-	        if (canReadStorage()){
-	        	clip= new File(Environment.getExternalStorageDirectory(),
-	        			extraString);
-	        	if (clip.exists()){
-	        		initializeVideo();        		
-	        	}        	
-	        }
-	        else {
-	        	System.out.println("We don't appear to have read rights on your device's storage device (most likely an SD card).");
-	        }
-        }
-        catch(Exception e)
-        {
-        	e.printStackTrace();
-        }
+    		initializeVideo();    
+    		StaticVariables.clipChanged = false;
+    	}    
         
         topPaddingUpdated = false;
         
@@ -168,27 +119,281 @@ public class VideoActivity extends Activity
         }
      
         layout = (RelativeLayout)(findViewById(R.id.activity_video_relative_layout));
-      
 
-
-	        ViewTreeObserver vto = layout.getViewTreeObserver();
-	        vto.addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
-	            @Override
-	            public void onGlobalLayout() 
-	            {
-	                redraw();
-	                
-	                layout.getViewTreeObserver().removeOnGlobalLayoutListener(this); //.removeGlobalOnLayoutListener(this); 
-	            }
-	        });
+        initActionbar();
         
+        redraw = true;
+        
+        ViewTreeObserver vto = layout.getViewTreeObserver();
+        vto.addOnGlobalLayoutListener(new OnGlobalLayoutListener()
+        {
+            public void onGlobalLayout() 
+            {
+            	if(redraw)
+                {
+            		redraw();	               		
+            		redraw = false;    
+                }
+            }
+        });        
+    }
+    
+    public void onResume()
+    {
+    	super.onResume();
+    	initActionbar();
+    }
+    
+    /**
+     * Value 1- scale left
+     * Value 2- scale right
+     * value 3- origin
+     * value 4 - plotting points. 
+     * value 5 - remove points
+     * True = doing that. Only 1 value can be true.
+     */
+    private boolean[] activeMode = new boolean[5];
+    
+    public void initActionbar()
+    {
+    	final ImageView scaleLeft = (ImageView)(findViewById(R.id.action_bar_scale_left));
+    	final ImageView scaleRight = (ImageView)(findViewById(R.id.action_bar_scale_right));
+    	final ImageView origin = (ImageView)(findViewById(R.id.action_bar_set_origin));
+    	final ImageView plotPoints = (ImageView)(findViewById(R.id.action_bar_plot_points));
+    	final ImageView removePoints = (ImageView)(findViewById(R.id.action_bar_remove_points));
+    	
+    	final Drawable scaleLeftOn = getResources().getDrawable(R.drawable.icon_scale_left_on);
+    	final Drawable scaleLeftOff = getResources().getDrawable(R.drawable.icon_scale_left_off);
+    	final Drawable scaleRightOn = getResources().getDrawable(R.drawable.icon_scale_right_on);
+    	final Drawable scaleRightOff = getResources().getDrawable(R.drawable.icon_scale_right_off);
+    	final Drawable originOn = getResources().getDrawable(R.drawable.icon_origin_on);
+    	final Drawable originOff = getResources().getDrawable(R.drawable.icon_origin_off);
+    	final Drawable plotPointsOn = getResources().getDrawable(R.drawable.icon_plot_points_on);
+    	final Drawable plotPointsOff = getResources().getDrawable(R.drawable.icon_plot_points_off);
+    	final Drawable removePointsOn = getResources().getDrawable(R.drawable.icon_remove_points_on);
+    	final Drawable removePointsOff = getResources().getDrawable(R.drawable.icon_remove_points_off);
+    	
+    	final LinearLayout linear_layout = (LinearLayout)(findViewById(R.id.action_bar_layout));
+    	    	
+		final TextView scale = ((TextView)(findViewById(R.id.scale_text_zone)));
+		
+    	scaleLeft.setOnClickListener(new View.OnClickListener(){
+    	    public void onClick(View v) {
+		     	if(activeMode[0])
+		     	{
+		     		return;
+		     	}
+    	    	
+    	    	if(activeMode[1])
+    	    	{
+    	    		scaleRight.setImageDrawable(scaleRightOff);
+    	    		activeMode[1] = false;
+    	    	}
+    	    	if(activeMode[2])
+    	    	{
+    	    		origin.setImageDrawable(originOff);
+    	    		activeMode[2] = false;
+    	    	}
+    	    	if(activeMode[3])
+    	    	{
+    	    		plotPoints.setImageDrawable(plotPointsOff);
+    	    		activeMode[3] = false;
+    	    	}
+    	    	if(activeMode[4])
+    	    	{
+    	    		removePoints.setImageDrawable(removePointsOff);
+    	    		activeMode[4] = false;
+    	    	}
+    	    	
+    	    	activeMode[0] = true;
+    	    	setScale();
+    	    	resetOriginScalePointSetters();
+    	    	isSettingScaleLeft = true;
+    	    	scale.setVisibility(View.VISIBLE);
+		    	scaleLeft.setImageDrawable(scaleLeftOn);
+		    	linear_layout.invalidate();
+		    }
+    	});
+
+    	scaleRight.setOnClickListener(new View.OnClickListener(){
+    	    public void onClick(View v) {
+    	    	if(activeMode[1])
+    	    	{
+    	    		return;
+    	    	}
+    	    	
+    	    	if(activeMode[0])
+    	    	{
+    	    		scaleLeft.setImageDrawable(scaleLeftOff);
+    	    		activeMode[0] = false;
+    	    	}
+    	    	if(activeMode[2])
+    	    	{
+    	    		origin.setImageDrawable(originOff);
+    	    		activeMode[2] = false;
+    	    	}
+    	    	if(activeMode[3])
+    	    	{
+    	    		plotPoints.setImageDrawable(plotPointsOff);
+    	    		activeMode[3] = false;
+    	    	}
+    	    	if(activeMode[4])
+    	    	{
+    	    		removePoints.setImageDrawable(removePointsOff);
+    	    		activeMode[4] = false;
+    	    	}
+    	    	
+    	    	activeMode[1] = true;
+    	    	setScale();
+    	    	resetOriginScalePointSetters();
+    	    	isSettingScaleRight = true;
+    	    	scale.setVisibility(View.VISIBLE);
+    	    	scaleRight.setImageDrawable(scaleRightOn);
+		    	linear_layout.invalidate();
+    	    }
+    	});
+
+    	origin.setOnClickListener(new View.OnClickListener(){
+    	    public void onClick(View v) {
+    	    	if(activeMode[2])
+    	    	{
+    	    		return;
+    	    	}
+    	    	
+    	    	if(activeMode[0])
+    	    	{
+    	    		scaleLeft.setImageDrawable(scaleLeftOff);
+    	    		activeMode[0] = false;
+    	    	}
+    	    	if(activeMode[1])
+    	    	{
+    	    		scaleRight.setImageDrawable(scaleRightOff);
+    	    		activeMode[1] = false;
+    	    	}
+    	    	if(activeMode[3])
+    	    	{
+    	    		plotPoints.setImageDrawable(plotPointsOff);
+    	    		activeMode[3] = false;
+    	    	}
+    	    	if(activeMode[4])
+    	    	{
+    	    		removePoints.setImageDrawable(removePointsOff);
+    	    		activeMode[4] = false;
+    	    	}
+    	    	
+    	    	activeMode[2] = true;
+    	    	resetOriginScalePointSetters();
+    	    	isSettingOrigin = true;
+    	    	scale.setVisibility(View.INVISIBLE);
+		    	origin.setImageDrawable(originOn);
+		    	linear_layout.invalidate();
+		    }
+    	});
+
+    	plotPoints.setOnClickListener(new View.OnClickListener(){
+    	    public void onClick(View v) {
+    	    	if(activeMode[3])
+    	    	{
+    	    		return;
+    	    	}
+    	    	
+    	    	if(activeMode[0])
+    	    	{
+    	    		scaleLeft.setImageDrawable(scaleLeftOff);
+    	    		activeMode[0] = false;
+    	    	}
+    	    	if(activeMode[1])
+    	    	{
+    	    		scaleRight.setImageDrawable(scaleRightOff);
+    	    		activeMode[1] = false;
+    	    	}
+    	    	if(activeMode[2])
+    	    	{
+    	    		origin.setImageDrawable(originOff);
+    	    		activeMode[2] = false;
+    	    	}
+    	    	if(activeMode[4])
+    	    	{
+    	    		removePoints.setImageDrawable(removePointsOff);
+    	    		activeMode[4] = false;
+    	    	}
+    	    
+    	    	activeMode[3] = true;
+    	    	resetOriginScalePointSetters();
+    	    	plottingPoints = true;	
+    	    	scale.setVisibility(View.INVISIBLE);
+    	    	plotPoints.setImageDrawable(plotPointsOn);
+		    	linear_layout.invalidate();
+    	    }
+    	});
+    	
+    	removePoints.setOnClickListener(new View.OnClickListener(){
+    	    public void onClick(View v) {
+    	    	if(activeMode[4])
+    	    	{
+    	    		return;
+    	    	}
+    	    	
+    	    	if(activeMode[0])
+    	    	{
+    	    		scaleLeft.setImageDrawable(scaleLeftOff);
+    	    		activeMode[0] = false;
+    	    	}
+    	    	if(activeMode[1])
+    	    	{
+    	    		scaleRight.setImageDrawable(scaleRightOff);
+    	    		activeMode[1] = false;
+    	    	}
+    	    	if(activeMode[2])
+    	    	{
+    	    		origin.setImageDrawable(originOff);
+    	    		activeMode[2] = false;
+    	    	}
+    	    	if(activeMode[3])
+    	    	{
+    	    		plotPoints.setImageDrawable(plotPointsOff);
+    	    		activeMode[3] = false;
+    	    	}
+    	    
+    	    	activeMode[4] = true;
+    	    	resetOriginScalePointSetters();
+    	    	isRemovingPoints = true;	
+    	    	scale.setVisibility(View.INVISIBLE);
+    	    	removePoints.setImageDrawable(removePointsOn);
+		    	linear_layout.invalidate();
+    	    }
+    	});
+    }
+    
+    public void onStart()
+    {
+    	super.onStart();
+    	if (StaticVariables.clip != null && StaticVariables.clip.exists() && StaticVariables.clipChanged)
+        {
+    		initializeVideo(); 
+    		StaticVariables.clipChanged = false;
+    	}    
+    }
+    
+    public void onStop()
+    {
+    	super.onStop();
+    }
+    
+    public void onPause()
+    {
+    	super.onPause();
+    	
+    	if(videoView != null)
+    	{
+    		videoView.pause();
+    	}
     }
     
     public void clearData()
     {
-    	StaticVariables.mainProject.origin = new Point(0, 0);
-    	StaticVariables.mainProject.getOptions().clearAllPoints(layout);
-    	StaticVariables.mainProject.options = new OptionsObject();
+    	StaticVariables.mainProject.origin = null;
+    	StaticVariables.mainProject.clearAllPoints(layout);
 		StaticVariables.mainProject.actionStack = new StackAction(Project.ACTION_QUEUE_SIZE);
     	StaticVariables.mainProject.graphable = new GraphableObjectContainer();
     	StaticVariables.mainProject.videoBounds = null;
@@ -197,63 +402,150 @@ public class VideoActivity extends Activity
     	topPaddingUpdated = false;
     }
 
+    public int parseInt(String s)
+    {
+    	try
+    	{
+    		int i = Integer.parseInt(s);
+    		return i;
+    	}
+    	catch(Exception e)
+    	{
+    		e.printStackTrace();
+    		return 0;
+    	}
+    }
+
     public void initializeSeekAndStep(){
-    	stepAmount = (NumberPicker) findViewById(R.id.stepcontrol);
-    	stepAmount.setMinValue(1);
-        stepAmount.setValue(1);
-        stepAmount.setMaxValue(5);
-        
+    	frameSelected = (EditText) findViewById(R.id.frame_number);
+    	frameSelected.setText(""+StaticVariables.mainProject.frameSkip);
+    	frameSelected.bringToFront();
+    	frameSelected.addTextChangedListener(new TextWatcher(){
+            public void afterTextChanged(Editable s) {
+            	try
+            	{
+            		if(!ignoreTextEvent)
+            		{
+	            		int time = Integer.parseInt(frameSelected.getText().toString()) * 33;
+	            		if(time != lasttime)
+	            		{
+	                    	ignoreTextEvent = true;
+	                    	if(videoView.isPlaying())
+	            			{
+	                    		videoView.seekTo(time);
+	            			}
+				    		seeker.setProgress(videoView.getCurrentPosition());
+				    		lasttime = time;
+	            		}
+	            	}
+            		ignoreTextEvent = false;
+            	}
+            	catch(Exception e)
+            	{
+            		e.printStackTrace();
+            	}            	
+            }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after){}
+            public void onTextChanged(CharSequence s, int start, int before, int count){}
+        }); 
+    	
         seeker = (SeekBar) findViewById(R.id.seekControl);
         System.out.println(vidLength);
         seeker.setMax((int) vidLength);
         //Allow the seekBar to actually control the video's position
         seeker.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {            
-            @Override
-            public void onProgressChanged(SeekBar seeker, int progress,
-                    boolean fromUser) {
-            	if (fromUser){
+            public void onProgressChanged(SeekBar seeker, int progress, boolean fromUser) {
+            	if (fromUser){            		
             		videoView.seekTo(progress);
+            		frameSelected.setText("" + videoView.getCurrentPosition() / 33);
             	}
             }
 
-			@Override
-			public void onStartTrackingTouch(SeekBar arg0) {
-			}
-
-			@Override
-			public void onStopTrackingTouch(SeekBar arg0) {
-			}
+			public void onStartTrackingTouch(SeekBar arg0) {}
+			public void onStopTrackingTouch(SeekBar arg0) {}
          });        	
     }
     
-    public void stepVideo(View v){
-    	if(videoView == null || stepAmount == null)
+    public Runnable onEverySecond = new Runnable() 
+    {
+        public void run() 
+        {
+            if(videoView.isPlaying() && seeker != null) 
+            {
+            	System.out.println(">"+videoView.getCurrentPosition() + ", " + vidLength);
+            	seeker.setProgress(videoView.getCurrentPosition());
+            	frameSelected.setText("" + (videoView.getCurrentPosition() / 33));
+            	updatedFrame = true;
+            }
+            
+            if(updatedFrame)
+            {
+               	System.out.println(">"+videoView.getCurrentPosition() + ", " + vidLength);
+                
+            	seeker.setProgress(videoView.getCurrentPosition());
+            	frameSelected.setText("" + (videoView.getCurrentPosition() / 33));
+                updatedFrame = false;
+            }
+            
+            seeker.postDelayed(onEverySecond, videoCheckDelay);
+        }
+    };
+    
+    public void stepVideo(View v)
+    {
+    	try
     	{
-    		return;
+	    	if(videoView == null || !plottingPoints)
+	    	{
+	    		return;
+	    	}
+	    	
+	    	videoView.pause();
+	    	
+	    	//If it's possible to step to the correct time, do so
+	    	if (videoView.getCurrentPosition() + (StaticVariables.mainProject.frameSkip * 33)  < vidLength){
+	    		videoView.seekTo(videoView.getCurrentPosition() + (StaticVariables.mainProject.frameSkip * 33));
+	    		seeker.setProgress(videoView.getCurrentPosition());
+	    		frameSelected.setText("" + videoView.getCurrentPosition() / 33);
+	        }
+	    	//Otherwise step to the end
+	    	else{
+	    		videoView.seekTo((int) vidLength);
+	    		seeker.setProgress(videoView.getCurrentPosition());
+	    		frameSelected.setText("" + videoView.getCurrentPosition() / 33);
+	        }
+	    	System.out.println(videoView.getCurrentPosition());
     	}
-    	
-    	//If it's possible to step to the correct time, do so
-    	if (videoView.getCurrentPosition() + (stepAmount.getValue() * 33)  < vidLength){
-    		videoView.seekTo(videoView.getCurrentPosition() + (stepAmount.getValue() * 33));
-    		seeker.setProgress(videoView.getCurrentPosition());
+    	catch(Exception e)
+    	{
+    		e.printStackTrace();
     	}
-    	//Otherwise step to the end
-    	else{
-    		videoView.seekTo((int) vidLength);
-    		seeker.setProgress(videoView.getCurrentPosition());
-    	}
-    	System.out.println(videoView.getCurrentPosition());
     }
     
-    public void initializeVideo(){
-    	videoView.setVideoPath(clip.getAbsolutePath());	
+    public void initializeVideo()
+    {
+    	videoView.setVideoPath(StaticVariables.clip.getAbsolutePath());
+    	
+    	AudioManager mAudioManager = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE);
+	    int set_volume = 0;
+	    mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, set_volume, 0);
+    	
     	//Get the length of the video, in milliseconds, once loaded, then continue setup
     	videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
 			public void onPrepared(MediaPlayer mp){    				
 				vidLength = videoView.getDuration();
+				
+				//Video less than 10 seconds, adjust the seekbar update time
+				if(vidLength < 10000)
+				{
+					videoCheckDelay = (int) (((vidLength / 10) >= 200) ? (vidLength / 10) : 200); 
+				}
+				
 				initializeSeekAndStep();
+				seeker.setMax(videoView.getDuration());
+		        seeker.postDelayed(onEverySecond, videoCheckDelay);
 				videoView.start();
-		    	videoView.pause();  
+		    	videoView.pause();		    	
 			};
 		});
     }
@@ -261,9 +553,6 @@ public class VideoActivity extends Activity
     //Method to step the video and send a data point
     public void videoClick(View v){
     	stepVideo(v);  
-    	/**
-    	 * Add a method to send data here!
-    	 */
     }
     
     public void playButton(View v){
@@ -287,7 +576,6 @@ public class VideoActivity extends Activity
     public boolean onCreateOptionsMenu(Menu menu) 
     {
         getMenuInflater().inflate(R.menu.activity_video, menu);
-        this.menu = menu;
         return true;
     }
     
@@ -307,26 +595,8 @@ public class VideoActivity extends Activity
             	reverseLastAction();
             	return true;
            	*/
-            case R.id.action_bar_remove_point:
-            	removePoint();
-            	return true;
-            case R.id.action_bar_set_origin:
-            	setOrigin();            	
-            	return true;
-            case R.id.action_bar_plot_points:
-            	plotPoints();
-            	return true;
-            case R.id.action_bar_set_scale:
-            	setScale();            	
-            	return true;
-            case R.id.action_bar_save_video:
-            	saveProject();
-            	return true;
-            case R.id.action_bar_open_project_video:
-            	beginOpeningProject();
-            	return true;
-            case R.id.action_bar_new_project_video:
-            	newProject();
+            case R.id.action_bar_main_menu:
+            	returnToMenu();
             	return true;
             case R.id.action_bar_change_video:
             	returnToVideo();
@@ -336,21 +606,57 @@ public class VideoActivity extends Activity
         }
     }
     
+    public void returnToMenu()
+    {
+    	ConfirmActionDialog dialog1 = new ConfirmActionDialog("Yes", "No", "Return to main menu?", "proj_exit_check");
+    	dialog1.show(getFragmentManager(), "user_query_save_before_exit");
+    }
+    
+	public void onActionConfirm(DialogFragment dialog, String message) {
+
+		if(message.equals("proj_exit_check"))
+		{
+	    	ConfirmActionDialog dialog1 = new ConfirmActionDialog("Yes", "No", "Save project to disk before exiting?", "save");
+	    	dialog1.show(getFragmentManager(), "user_query_save_before_exit");
+		}
+
+		if(message.equals("save"))
+		{
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+	    	boolean saveInternally = prefs.getBoolean("preference_default_save_option", false);
+	    	new FileUtils().save(this, saveInternally, StaticVariables.mainProject);
+			closeToMainMenu();
+		}
+	}
+	
+	private void closeToMainMenu()
+	{
+		Intent i = new Intent(this, TitleActivity.class);
+		startActivity(i);
+	}
+
+	public void onActionCancel(DialogFragment dialog, String message) {
+		if(message.equals("save")){
+			closeToMainMenu();
+		}
+	}
+    
     public void removePoint()
     {
-    	StaticVariables.mainProject.options.removePointByTime(layout, getTime());
+    	StaticVariables.mainProject.removePointByTime(layout, getTime());
     }
     
     public void redraw()
     {
-    	
-    	
+    	final TextView scale = ((TextView)(findViewById(R.id.scale_text_zone)));
+		
     	textBounds = new ClickBoundary(new Point[] { 
-				new Point(0, 0),
-				new Point(getWidth() * 0.4, 0), 
-				new Point(getWidth() * 0.4, getHeight() / 10),
-				new Point(0, getHeight() / 10)					
+				new Point(scale.getLeft(), scale.getTop()),
+				new Point(scale.getRight(), scale.getTop()), 
+				new Point(scale.getRight(), scale.getBottom()),
+				new Point(scale.getLeft(), scale.getBottom())					
 			});
+    	
     	
 		TOP_PADDING = getHeight() - layout.getMeasuredHeight();
 			
@@ -361,48 +667,50 @@ public class VideoActivity extends Activity
 		
 		StaticVariables.mainProject.videoBounds = new Boundary(new Point[] { new Point(left, top), new Point(right, top), new Point(right, bottom), new Point(left, bottom) });
 		
-    	Point[] points = StaticVariables.mainProject.getOptions().getPointsAsArray();
+    	Point[] points = StaticVariables.mainProject.getPointsAsArray();
     	
     	for(int i = 0; i < points.length; i++)
     	{
     		double x = points[i].x;
     		double y = points[i].y - TOP_PADDING;
-    		
     		final int SIZE = 4;
-			ImageView image = points[i].imageView;
-			//image.setImageResource(R.drawable.point);
-			//mage.setAdjustViewBounds(true);
-			//StaticVariables.mainProject.getOptions().registerPoint(new Point(x, y + TOP_PADDING, getTime(),image));
 			
 			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(2 * SIZE, 2 * SIZE);
 			params.leftMargin = (int) x - SIZE;
 			params.topMargin = (int) y - SIZE;			
-			//layout.removeView(image);
 			
-			layout.addView(image, params);	
-			//image.setLayoutParams(params);
+			if(points[i].imageView == null)
+			{
+				points[i].imageView = new ImageView(this);
+				points[i].imageView.setImageResource(R.drawable.point);
+				points[i].imageView.setAdjustViewBounds(true);
+			}
 			
-    		//points[i].imageView.setLayoutParams(points[i].imageView.getLayoutParams());
-//    		layout.addView();
+			final Point point = points[i];
+			
+			points[i].imageView.setOnClickListener(new View.OnClickListener(){
+	    	    public void onClick(View v) {
+		    	    	if(isRemovingPoints)
+		    	    	{
+		    	    		StaticVariables.mainProject.removePointByValue(layout, point);
+		    	    	}
+	    	    	}
+	    	    });
+			
+			layout.addView(points[i].imageView, params);
     	}
     	
     	if(StaticVariables.mainProject.origin != null)
     	{
     		double x = StaticVariables.mainProject.origin.x;
     		double y = StaticVariables.mainProject.origin.y;
-    		StaticVariables.mainProject.origin = new Point(x, y);
     		
-    		ImageView imageHA = (ImageView) findViewById(R.id.image_view_vertical_axis);
-    		ImageView imageVA = (ImageView) findViewById(R.id.image_view_horizontal_axis);
-    		ImageView imageO = (ImageView) findViewById(R.id.image_view_origin);
-        	
+    		ImageView imageVA = (ImageView) findViewById(R.id.image_view_vertical_axis);
+    		ImageView imageHA = (ImageView) findViewById(R.id.image_view_horizontal_axis);
+    		
     		imageHA.setVisibility(View.VISIBLE);
     		imageVA.setVisibility(View.VISIBLE);
-    		imageO.setVisibility(View.VISIBLE);
-    		
-    		
-    		System.out.println(getWidth() + "   ," + getHeight());
-    		
+    		    		
     		double videoHeight = StaticVariables.mainProject.videoBounds.points[3].y - StaticVariables.mainProject.videoBounds.points[0].y;
     		
     		double height1 = (int)((y + AXIS_SIZE - TOP_PADDING) - (y - AXIS_SIZE - TOP_PADDING));
@@ -412,7 +720,6 @@ public class VideoActivity extends Activity
     		}
     		
     		RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(getWidth(), (int) height1); 
-    		//params.setMargins(0, (int)y - AXIS_SIZE - TOP_PADDING, (int)getWidth(), (int)y + AXIS_SIZE - TOP_PADDING);
     		params.leftMargin = 0;
     		params.topMargin = (int)y - AXIS_SIZE - TOP_PADDING;
     		
@@ -423,7 +730,6 @@ public class VideoActivity extends Activity
     		}
     		
     		RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams((int) ((x + AXIS_SIZE) - (x - AXIS_SIZE)), (int) height2); 
-//    		params1.setMargins((int)x - AXIS_SIZE, 0, (int)x + AXIS_SIZE, getHeight());
     		params1.leftMargin = (int)x - AXIS_SIZE;
     		params1.topMargin = 0;
     		
@@ -434,39 +740,27 @@ public class VideoActivity extends Activity
     			height3 = videoHeight - (y - AXIS_SIZE - TOP_PADDING);
     		}
     		
-    		RelativeLayout.LayoutParams params2 = new RelativeLayout.LayoutParams((int)((x + AXIS_SIZE) - (x - AXIS_SIZE)), (int) height3); 
-//    		params2.setMargins((int)x - AXIS_SIZE, (int)y - AXIS_SIZE - TOP_PADDING, (int)x + AXIS_SIZE, (int)y + AXIS_SIZE - TOP_PADDING);
-    		params2.leftMargin = (int) (x - AXIS_SIZE);
-    		params2.topMargin = (int) (y - AXIS_SIZE - TOP_PADDING);
-    		
     		imageHA.setLayoutParams(params);
     		imageVA.setLayoutParams(params1);
-    		imageO.setLayoutParams(params2);
     		
         	isSettingOrigin = false;
-    		
     	}
     	
     	if(StaticVariables.mainProject.scaleBoundary != null)
     	{
-    		setScale();
-    		
-    		
     		
     		ImageView image = (ImageView) findViewById(R.id.image_view_scale);
-			Point rightPoint = StaticVariables.mainProject.scaleBoundary.centerOfRightLine();
-			Point leftPoint = StaticVariables.mainProject.scaleBoundary.centerOfLeftLine();
-			Point centerPoint = StaticVariables.mainProject.scaleBoundary.getPerfectCenter();
-		    
+			Point rightPoint = StaticVariables.mainProject.scaleBoundary.points[1];
+			image.setVisibility(View.VISIBLE);
+			Point leftPoint = StaticVariables.mainProject.scaleBoundary.points[0];
+		    StaticVariables.mainProject.scaleBoundary.points[0] = leftPoint;
+			
 			double lineLength = lineLength(rightPoint.getX(), rightPoint.getY(), leftPoint.x, leftPoint.y);
+						
+			double angle = angleBetweenTwoVectors(rightPoint.x, rightPoint.y, getWidth(), rightPoint.y, leftPoint.x, leftPoint.y);
+			angle*=-1;
 			
-			System.out.println(">>" + lineLength);
-			
-			double angle = 0;//angleBetweenTwoVectors(rightPoint.x, rightPoint.y, x, y, leftPoint.getX(), leftPoint.getY());
-			StaticVariables.mainProject.scaleBoundary.totalRotLeft += angle;				
-			
-			StaticVariables.mainProject.scaleBoundary.updateLengthLeft(lineLength);
-			StaticVariables.mainProject.scaleBoundary.rotateOnRightCenter(angle);
+			StaticVariables.mainProject.scaleBoundary.totalRot = angle;	
 			
 		    left = StaticVariables.mainProject.scaleBoundary.points[0].x;
 		    right = StaticVariables.mainProject.scaleBoundary.points[0].x;
@@ -487,86 +781,27 @@ public class VideoActivity extends Activity
 		    		bottom = p.y;
 		    }
 		    
+		    
 		    Matrix matrix = new Matrix();
 			image.setScaleType(ScaleType.MATRIX);
-			matrix.setRotate((float)(StaticVariables.mainProject.scaleBoundary.totalRotRight + StaticVariables.mainProject.scaleBoundary.totalRotLeft), (int)centerPoint.getX(), (int)centerPoint.getY());//, (int)rightPoint.getX(), (int)rightPoint.getY()
+			matrix.setRotate((float)(StaticVariables.mainProject.scaleBoundary.totalRot));//, (int)rightPoint.getX(), (int)rightPoint.getY());
 
 			Bitmap resizedBitmap = getResizedBitmap(StaticVariables.scaleImage, (int)lineLength, StaticVariables.scaleImage.getHeight());
 		    Bitmap img2 = Bitmap.createBitmap(resizedBitmap, 0, 0, resizedBitmap.getWidth(), resizedBitmap.getHeight(), matrix, true);
 		    image.setImageBitmap(img2);			 
-		    
-		    
+		  			    
 		    double hypotenuse = Math.sqrt(Math.pow(bottom - top, 2) + Math.pow(right-left, 2));
 		    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)hypotenuse, (int)hypotenuse);
 		    params.leftMargin = (int) (left);
 		    params.topMargin = (int) top;			    
-		    //move the image to where it should be... not (0, 0)
-		    layout.removeView(image);
-		    layout.addView(image, params);	
 		    
-		    RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT); 
-		    params1.setMargins(0, 0, (int)(getWidth() * 0.4), getHeight() / 10);
-		    
-        	EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));
-        	scaleText.setLayoutParams(params1);
-        	
-    		/*
-	    	ImageView image = (ImageView) findViewById(R.id.image_view_scale);
-	    	Point rightPoint = StaticVariables.mainProject.scaleBoundary.centerOfRightLine();
-			Point leftPoint = StaticVariables.mainProject.scaleBoundary.centerOfLeftLine();
-			Point centerPoint = StaticVariables.mainProject.scaleBoundary.getPerfectCenter();
-		    double lineLength = lineLength(leftPoint.getX(), leftPoint.getY(), rightPoint.getX(), rightPoint.getY());
-		    image.setVisibility(View.VISIBLE);
-			
-	    	left = StaticVariables.mainProject.scaleBoundary.points[0].x;
-		    right = StaticVariables.mainProject.scaleBoundary.points[0].x;
-		    top = StaticVariables.mainProject.scaleBoundary.points[0].y;
-		    bottom = StaticVariables.mainProject.scaleBoundary.points[0].y;
-		    
-		    for(int i = 0; i < StaticVariables.mainProject.scaleBoundary.points.length; i++)
-		    {
-		    	Point p = StaticVariables.mainProject.scaleBoundary.points[i];
-		    	
-		    	if(p.x < left)
-		    		left = p.x;
-		    	if(p.x > right)
-		    		right = p.x;
-		    	if(p.y < top)
-		    		top = p.y;
-		    	if(p.y > bottom)
-		    		bottom = p.y;			    	
-		    }
-		    
-		    Matrix matrix = new Matrix();
-			image.setScaleType(ScaleType.MATRIX);
-			matrix.setRotate((float)(StaticVariables.mainProject.scaleBoundary.totalRotRight + StaticVariables.mainProject.scaleBoundary.totalRotLeft), (int)centerPoint.getX(), (int)centerPoint.getY());//, (int)rightPoint.getX(), (int)rightPoint.getY()
-	
-			Bitmap resizedBitmap = getResizedBitmap(StaticVariables.scaleImage, (int)lineLength, StaticVariables.scaleImage.getHeight());
-		    Bitmap img2 = Bitmap.createBitmap(resizedBitmap, 0, 0, resizedBitmap.getWidth(), resizedBitmap.getHeight(), matrix, true);
-		    image.setImageBitmap(img2);
-		    
-		    double hypotenuse = Math.sqrt(Math.pow(bottom - top, 2) + Math.pow(right-left, 2));
-		    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)hypotenuse, (int)hypotenuse);
-		    params.leftMargin = (int) (left);
-		    params.topMargin = (int) top;			    
-		    //move the image to where it should be... not (0, 0)
-		    layout.removeView(image);
-		    layout.addView(image, params);			
-		
-		   
-		    RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT); 
-		    params1.setMargins(0, 0, (int)(getWidth() * 0.4), getHeight() / 10);
-		    
-	    	EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));
-	    	scaleText.setLayoutParams(params1);
-	    	*/
-    	}
-    
+		    image.setLayoutParams(params);
+    	}    
     }
     
     public void changeActivity()
     {
-    	Point[] points = StaticVariables.mainProject.getOptions().getPointsAsArray();
+    	Point[] points = StaticVariables.mainProject.getPointsAsArray();
     	
     	for(int i = 0; i < points.length; i++)
     	{
@@ -586,122 +821,15 @@ public class VideoActivity extends Activity
 		return path.substring(path.lastIndexOf("/") + 1, path.indexOf(".physdat"));
 	}
 
-	private String[] queryForFilesInternally() {
-		File[] files = getFilesDir().listFiles();
-		String[] strings = new String[files.length];
-		int totalValues = 0;
-		for (int i = 0; i < strings.length; i++) 
-		{
-			if(files[i].toString().endsWith(".physdat"))
-			{
-				strings[totalValues] = trimFilepath(files[i].toString());
-				totalValues++;						
-			}
-		}
-		
-		String[] betterValues = new String[totalValues];
-		for(int i = 0; i < totalValues; i++)
-		{
-			betterValues[i] = strings[i];
-		}
-		
-		return betterValues;
-	}
-
-	private String[] queryForFilesExternally() {
-		if (canReadStorage()) {
-			File[] files = getExternalFilesDir(null).listFiles();
-			String[] strings = new String[files.length];
-			int totalValues = 0;
-			for (int i = 0; i < strings.length; i++) 
-			{
-				if(files[i].toString().endsWith(".physdat"))
-				{
-					strings[totalValues] = trimFilepath(files[i].toString());
-					totalValues++;						
-				}
-			}
-			
-			String[] betterValues = new String[totalValues];
-			for(int i = 0; i < totalValues; i++)
-			{
-				betterValues[i] = strings[i];
-			}
-			return betterValues;
-		}
-
-		return new String[] {};
-	}
-
-    
-    public void beginOpeningProject()
-    {
-    	String[] mergedFilePaths;
-    	String[] internal = queryForFilesInternally();
-    	String[] external = queryForFilesExternally();
-    	mergedFilePaths = new String[internal.length + external.length];
-    	
-    	for(int i = 0; i < internal.length; i++)
-    	{
-    		mergedFilePaths[i] = internal[i];
-    	}
-    	for(int i = 0; i < external.length; i++)
-    	{
-    		mergedFilePaths[internal.length + i] = external[i];
-    	}
-    	
-    	DialogFragment newFragment = new ChooseProjectDialog(mergedFilePaths, internal.length - 1);
-	    newFragment.show(getFragmentManager(), "open_project");    	
-    }
-    
-    public void newProject()
-    {
-    	DialogFragment newFragment = new VideoConfirmDialogFragment();
-	    newFragment.show(getFragmentManager(), "new_project");    		    
-	    TOP_PADDING = getHeight() - layout.getMeasuredHeight();
-    }
-    
-    public void onDialogPositiveClick(DialogFragment dialog, String message) 
-	{
-    	//Confirm new 
-    	StaticVariables.mainProject = new Project(this);
-    	StaticVariables.mainProject.setDimensions(getWidth(), getHeight());
-	
-    	Intent intent = new Intent(this, VideoSelect.class);
-        startActivity(intent);
-	}
-
-	public void onDialogNegativeClick(DialogFragment dialog, String message) 
-	{
-	}
-    
-	public void openProject(DialogFragment dialog, String filePath, boolean storedInternally)
-	{
-		Project proj = new FileUtils().load(this, filePath, storedInternally);
-		
-		//Add a confirm dialog somewhere earlier? maybe for saving or something.
-		if(proj != null)
-		{
-			StaticVariables.mainProject = proj;
-		}
-	
-	
-	}
 	
 	public void displayOrigin(float x, float y)
 	{
 		StaticVariables.mainProject.origin = new Point(x, y);
 		
-		ImageView imageHA = (ImageView) findViewById(R.id.image_view_vertical_axis);
-		ImageView imageVA = (ImageView) findViewById(R.id.image_view_horizontal_axis);
-		ImageView imageO = (ImageView) findViewById(R.id.image_view_origin);
-    	
+		ImageView imageVA = (ImageView) findViewById(R.id.image_view_vertical_axis);
+		ImageView imageHA = (ImageView) findViewById(R.id.image_view_horizontal_axis);
 		imageHA.setVisibility(View.VISIBLE);
 		imageVA.setVisibility(View.VISIBLE);
-		imageO.setVisibility(View.VISIBLE);
-		
-		
-		System.out.println(getWidth() + "   ," + getHeight());
 		
 		double videoHeight = StaticVariables.mainProject.videoBounds.points[3].y - StaticVariables.mainProject.videoBounds.points[0].y;
 		
@@ -712,7 +840,6 @@ public class VideoActivity extends Activity
 		}
 		
 		RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(getWidth(), (int) height1); 
-		//params.setMargins(0, (int)y - AXIS_SIZE - TOP_PADDING, (int)getWidth(), (int)y + AXIS_SIZE - TOP_PADDING);
 		params.leftMargin = 0;
 		params.topMargin = (int)y - AXIS_SIZE - TOP_PADDING;
 		
@@ -723,7 +850,6 @@ public class VideoActivity extends Activity
 		}
 		
 		RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams((int) ((x + AXIS_SIZE) - (x - AXIS_SIZE)), (int) height2); 
-//		params1.setMargins((int)x - AXIS_SIZE, 0, (int)x + AXIS_SIZE, getHeight());
 		params1.leftMargin = (int)x - AXIS_SIZE;
 		params1.topMargin = 0;
 		
@@ -734,74 +860,10 @@ public class VideoActivity extends Activity
 			height3 = videoHeight - (y - AXIS_SIZE - TOP_PADDING);
 		}
 		
-		RelativeLayout.LayoutParams params2 = new RelativeLayout.LayoutParams((int)((x + AXIS_SIZE) - (x - AXIS_SIZE)), (int) height3); 
-//		params2.setMargins((int)x - AXIS_SIZE, (int)y - AXIS_SIZE - TOP_PADDING, (int)x + AXIS_SIZE, (int)y + AXIS_SIZE - TOP_PADDING);
-		params2.leftMargin = (int) (x - AXIS_SIZE);
-		params2.topMargin = (int) (y - AXIS_SIZE - TOP_PADDING);
-		
 		imageHA.setLayoutParams(params);
 		imageVA.setLayoutParams(params1);
-		imageO.setLayoutParams(params2);
-		
-		(menu.findItem(R.id.action_bar_set_origin)).setTitle(POSITIVE_MESSAGE);
-    	isSettingOrigin = false;
 	}
-	
-    public void setOrigin()
-    {
-    	if(!isSettingOrigin)
-    	{
-    		resetOriginScalePointSetters();
-    	}
-    	
-    	isSettingOrigin = !isSettingOrigin;    	
-    	(menu.findItem(R.id.action_bar_set_origin)).setTitle((!isSettingOrigin) ? POSITIVE_MESSAGE : NEGATIVE_MESSAGE);
-    }
-    
-    /**
-     * Mouse click inside where the origin in.
-     * @return
-     */
-    public boolean isInOriginBounds(float x, float y)
-    {
-    	if(StaticVariables.mainProject.origin != null)
-    	{
-    		if(x > (StaticVariables.mainProject.origin.getX() - AXIS_SIZE) &&
-    			x < (StaticVariables.mainProject.origin.getX() + AXIS_SIZE) &&
-    			y > (StaticVariables.mainProject.origin.getY() - AXIS_SIZE) &&
-    			y < (StaticVariables.mainProject.origin.getY() + AXIS_SIZE))
-    		{
-    			return true;
-    		}
-    	}  	
-    	
-    	return false;
-    }
-    
-    public void plotPoints()
-    {    	
-    	if(!plottingPoints)
-    	{
-    		resetOriginScalePointSetters();
-    	    MenuItem item = menu.findItem(R.id.action_bar_plot_points);
-    		item.setTitle(STOP_PLOTTING_POINTS);
-    	}
-    	else
-    	{
-    		MenuItem item = menu.findItem(R.id.action_bar_plot_points);
-    		item.setTitle(START_PLOTTING_POINTS);
-    	}   
-    	plottingPoints = !plottingPoints;
-    }
-    
-    public void addPoint(int x, int y)
-    {
-    	Point point = new Point(x, y);
-    	StaticVariables.mainProject.getOptions().registerPoint(point);
-    	StaticVariables.mainProject.getActionStack().push(new ActionAdd());
-    	System.out.println("Adding new point (hopefully) @" + x + "," + y);
-    }
-    
+	    
     public void setScale()
     {
     	if(StaticVariables.mainProject.scaleBoundary == null || !isScaleSet)
@@ -813,7 +875,7 @@ public class VideoActivity extends Activity
     			int left = videoView.getLeft();
     			int right = videoView.getRight();
     			int top = videoView.getTop();
-    			int bottom = videoView.getBottom();;
+    			int bottom = videoView.getBottom();
     			
     			StaticVariables.mainProject.videoBounds = new Boundary(new Point[] { new Point(left, top), new Point(right, top), new Point(right, bottom), new Point(left, bottom) });
     			topPaddingUpdated = true;
@@ -822,59 +884,41 @@ public class VideoActivity extends Activity
     		ImageView image = (ImageView) findViewById(R.id.image_view_scale);
             image.setVisibility(View.VISIBLE);
         	
-            double height = StaticVariables.mainProject.videoBounds.points[3].y - StaticVariables.mainProject.videoBounds.points[0].y - (getHeight() / 10);
-            
-    		double left = (getWidth() * 0.25);
-			double top = StaticVariables.mainProject.videoBounds.points[0].y + (0.5 * height);//(getHeight() * 0.5) - 20;
+            double height = StaticVariables.scaleImage.getHeight();//(getHeight() / 30 < MIN_SCALE_HEIGHT) ? MIN_SCALE_HEIGHT : getHeight() / 30;//StaticVariables.mainProject.videoBounds.points[3].y - StaticVariables.mainProject.videoBounds.points[0].y - (getHeight() / 10);
+            double videoHeight = StaticVariables.mainProject.videoBounds.points[3].y - StaticVariables.mainProject.videoBounds.points[0].y;
+            double left = (getWidth() * 0.25);
+			double top = StaticVariables.mainProject.videoBounds.points[0].y + (videoHeight * 0.5) - (0.5 * height);
 			double right = (getWidth() * 0.75);
-			double bottom = StaticVariables.mainProject.videoBounds.points[3].y - (0.5 * height);//(getHeight() * 0.5) + 20;
+			double bottom = StaticVariables.mainProject.videoBounds.points[3].y - (0.5 * videoHeight) + (0.5*height);
 			
-			StaticVariables.mainProject.scaleBoundary = new Boundary(new Point[] {
-    									 	new Point(left, top),
-    									 	new Point(right, top),
-    									 	new Point(right, bottom),
-    									 	new Point(left, bottom) 
+			StaticVariables.mainProject.scaleBoundary = new ScaleBoundary(new Point[] {
+    									 	new Point(left, top + ((bottom - top) * 0.5)),
+    									 	new Point(right, top + ((bottom - top) * 0.5))
     									 });   
 			
-			//0, 0, (int)(getWidth() * 0.4), getHeight() / 10
+			final TextView scale = ((TextView)(findViewById(R.id.scale_text_zone)));
 			textBounds = new ClickBoundary(new Point[] { 
-											new Point(0, 0),
-											new Point(getWidth() * 0.4, 0), 
-											new Point(getWidth() * 0.4, getHeight() / 10),
-											new Point(0, getHeight() / 10)					
-										});
-    		
-    		
+					new Point(scale.getLeft(), scale.getTop()),
+					new Point(scale.getRight(), scale.getTop()), 
+					new Point(scale.getRight(), scale.getBottom()),
+					new Point(scale.getLeft(), scale.getBottom())					
+				});
+			    		    		
     		RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)(right-left), (int)(bottom-top)); 
-		    //params.setMargins((int)left, (int)top, (int)right, (int)bottom);
 		    params.leftMargin = (int) left;
 		    params.topMargin = (int) top;
-		    
-		    System.out.println(">>>>"+ MathUtils.lineLength(StaticVariables.mainProject.scaleBoundary.centerOfLeftLine(), StaticVariables.mainProject.scaleBoundary.centerOfRightLine()));
-		    
-    		
+		        		
     		image.setLayoutParams(params);
-        	//*/
-    		//image.layout((int)left, (int)top, (int)right, (int)bottom);
-        	
+    		
         	EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));
         	scaleText.setText("100");
         	scaleText.setVisibility(View.VISIBLE);
-
-
 		    RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT); 
 		    params1.setMargins(0, 0, (int)(getWidth() * 0.4), getHeight() / 10);
-		    
         	scaleText.setLayoutParams(params1);
     		
-        	
-
-        	isScaleMeasureDisplayed = true;
         	isScaleSet = true;
-        	
-    	}
-    	
-    	
+    	}    	
     }
     
     /**
@@ -883,87 +927,31 @@ public class VideoActivity extends Activity
      */
     public void resetOriginScalePointSetters()
     {
-    	if(isSettingOrigin)
-    	{
-    		(menu.findItem(R.id.action_bar_set_origin)).setTitle(POSITIVE_MESSAGE);        	
-    		isSettingOrigin = false;    
-    	}
-    	if(isScaleMeasureDisplayed)
-    	{
-    		EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));
-    		scaleText.setVisibility(View.INVISIBLE);
-    		isScaleMeasureDisplayed = false;
-    	}
-    	if(isSettingScaleRight)
-    	{
-    		isSettingScaleRight = false;
-    	}
-    	if(isSettingScaleLeft)
-    	{
-    		isSettingScaleLeft = false;
-    	}
-    	if(plottingPoints)
-    	{
-    		MenuItem item = menu.findItem(R.id.action_bar_plot_points);
-    		item.setTitle(START_PLOTTING_POINTS);
-    		plottingPoints = false;
-    	}
+		isSettingOrigin = false;    
+    	isSettingScaleRight = false;
+		isSettingScaleLeft = false;
+		plottingPoints = false;
+		isRemovingPoints = false;
     }
-    
-    public boolean isInScaleLeftBounds(float x, float y)
-    {
-    	return (StaticVariables.mainProject.scaleBoundary == null) ? false : StaticVariables.mainProject.scaleBoundary.isInLeftBounds(x, y);
-    }
-    
-    public boolean isInScaleRightBounds(float x, float y)
-    {
-    	return (StaticVariables.mainProject.scaleBoundary == null) ? false : StaticVariables.mainProject.scaleBoundary.isInRightBounds(x, y);
-    }    
     
     public void saveProject()
     {
+    	StaticVariables.autosaveThread.interrupt();
     	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
     	boolean saveInternally = prefs.getBoolean("preference_default_save_option", false);
     	new FileUtils().save(this, saveInternally, StaticVariables.mainProject);
     }
-    
-    public void reverseLastAction()
-    {
-    	//Check to make sure there's actually a queue event
-    	if(StaticVariables.mainProject.getActionStack().size() > 0)
-    	{
-    		Action action = StaticVariables.mainProject.getActionStack().pop();
-    		String description = action.getDescription();
-    		//Last action was adding a point... so remove it
-    		if(description.equals(EnumAction.ACTION_ADD_POINT.actionValue))
-    		{
-    			if(StaticVariables.mainProject.getOptions().getPointCount() > 0)
-    	    	{
-    	    		Point point = StaticVariables.mainProject.getOptions().removeLastPoint(layout);
-    	    		System.out.println("Removing Last Point (hopefully)");
-    	    	}
-    		}
-    		if(description.equals(EnumAction.ACTION_DELETE_POINT.actionValue))
-    		{
-    			StaticVariables.mainProject.getOptions().registerPoint((Point)(action.getAssociatedObject()));
-    		}
-    	}
-    }
-    
+   
     public int getWidth()
 	{
-		android.view.Display display = getWindowManager().getDefaultDisplay();
-		android.graphics.Point size = new android.graphics.Point();
-		display.getSize(size);
-		return size.x;
+    	Display display = getWindowManager().getDefaultDisplay();
+    	return display.getWidth();    	
 	}
 	
 	public int getHeight()
 	{
-		android.view.Display display = getWindowManager().getDefaultDisplay();
-		android.graphics.Point size = new android.graphics.Point();
-		display.getSize(size);
-		return size.y;
+		Display display = getWindowManager().getDefaultDisplay();
+		return display.getHeight();
 	}
     
     public void openPreferences()
@@ -979,12 +967,7 @@ public class VideoActivity extends Activity
     	changeActivity();
     	EditText text = (EditText)(findViewById(R.id.scale_text_zone));
     	StaticVariables.mainProject.scaleTextValue = text.getText().toString();
-    	/*
-    	for(int i = 0; i < 7; i++)
-    		StaticVariables.mainProject.getOptions().registerPoint(new Point(i, i,i));
-    	StaticVariables.mainProject.getOptions().setDataChanged(true);	
-    	//*/
-    	
+    	   	
     	Intent intent = new Intent(this, GraphingActivity.class);
         intent.putExtra(MAIN_ACTIVITY, "Unneeded_Method");
         startActivity(intent);
@@ -998,11 +981,6 @@ public class VideoActivity extends Activity
 	{
 		
 		return false;
-	}
-
-	public boolean isInScaleBounds(float x, float y)
-	{
-		return (StaticVariables.mainProject.scaleBoundary == null) ? false : StaticVariables.mainProject.scaleBoundary.contains(x, y);
 	}
 	
 	public boolean onDown(MotionEvent e) 
@@ -1021,28 +999,6 @@ public class VideoActivity extends Activity
 		double angle1 = Math.atan2(y1 - y2, x1 - x2);
 		double angle2 = Math.atan2(y1 - y3, x1 - x3);
 		return Math.toDegrees(angle1-angle2);
-
-		
-		/*
-		double l1x = x2 - x1;
-		double l1y = y2 - y1;
-		double l2x = x3 - x1;
-		double l2y = y3 - y1;
-		//float tan1 = (float)l1y/(float)l1x;
-		//float tan2 = (float)l2y/(float)l2x;
-		double ang1 = Math.atan2(l1y, l1x);
-		double ang2 = Math.atan2(l2y, l2x);
-		return (Math.toDegrees(ang2-ang1));
-		
-		/*
-		double A = x1 * x2 + y1 * y2;
-		double B = Math.sqrt(Math.pow(x1, 2) + Math.pow(y1, 2));
-		double C = Math.sqrt(Math.pow(x2, 2) + Math.pow(y2, 2));
-		
-		double answer = A / (B * C);
-		
-		return Math.toDegrees(Math.acos(answer));
-		*/
 	}
 		
 	public double lineLength(double x1, double y1, double x2, double y2)
@@ -1052,22 +1008,22 @@ public class VideoActivity extends Activity
 	
 	public Point rotate_point(float cx, float cy, float angle, Point p)
 	{
-	  double s = Math.sin(Math.toRadians(angle));
-	  double c = Math.cos(Math.toRadians(angle));
+		double s = Math.sin(Math.toRadians(angle));
+		double c = Math.cos(Math.toRadians(angle));
 	
-	  // translate point back to origin:
-	  p.x -= cx;
-	  p.y -= cy;
+		// translate point back to origin:
+		p.x -= cx;
+		p.y -= cy;
+		
+		// rotate point
+		double xnew = p.x * c - p.y * s;
+		double ynew = p.x * s + p.y * c;
 	
-	  // rotate point
-	  double xnew = p.x * c - p.y * s;
-	  double ynew = p.x * s + p.y * c;
-	
-	  // translate point back:
-	  p.x = xnew + cx;
-	  p.y = ynew + cy;
+		// translate point back:
+		p.x = xnew + cx;
+	  	p.y = ynew + cy;
 	  
-	  return p;
+	  	return p;
 	}
 	
 	public Bitmap getResizedBitmap(Bitmap bm, int newWidth, int newHeight)
@@ -1097,93 +1053,45 @@ public class VideoActivity extends Activity
 	
 	public void mouseOnDown(MotionEvent e)
 	{
-		//"Mouse Down"
-
 		if(StaticVariables.mainProject == null || StaticVariables.mainProject.scaleBoundary == null)
 		{
-			//Should Register an Error
 			return;
 		}	
 		
 		float x = e.getRawX();
 		float y = e.getRawY() - TOP_PADDING;
-		//System.out.println("on_down@(" + x + "," + y + ")");
+		
 		if(!StaticVariables.mainProject.videoBounds.contains(x, y))
 		{
-			//resetOriginScalePointSetters();
 			return;
 		}
-		//System.out.println(isInScaleLeftBounds(x, y) + ", " + isInScaleRightBounds(x, y) + " " + scaleBoundary.left + " " + 
-		//		scaleBoundary.right + " " + scaleBoundary.top + " " + scaleBoundary.bottom);
-		
-		if(isInScaleLeftBounds(x, y))
-		{
-		//	resetOriginScalePointSetters();
-			isSettingScaleLeft = true;
-		//	isInScaleLeftBounds(x, y);
-		}
-		if(isInScaleRightBounds(x, y))
-		{
-		//	resetOriginScalePointSetters();
-			isSettingScaleRight = true;
-		//	isInScaleRightBounds(x, y);
-		}
-		
-		TextView txt =((TextView)(findViewById(R.id.scale_text_zone)));
-		if(isInScaleBounds(x, y) || (isInTextBounds(x, y) && txt.getVisibility() == View.VISIBLE)
-				)
-		{
-			//resetOriginScalePointSetters();
-			isScaleMeasureDisplayed = true;
-	    }
-		else
-		{
-			isScaleMeasureDisplayed = false;
-		}
-		
-		//System.out.println("on_down@" + isSettingScaleLeft + ", " + isSettingScaleRight);
-				
 	}
 	
-	public boolean isInTextBounds(float x, float y)
+	public double getTime()
 	{
-		return textBounds.contains(x, y);
+		return (videoView.getCurrentPosition() * 0.001);
 	}
-	
+			
 	public void mouseOnSingleTap(MotionEvent e)
 	{
-		if(StaticVariables.mainProject == null)
-		{
-			//Should Register an Error
-		}		
-		
 		//There is padding of 75 px at the top (so 0, 75) is basically (0,0) of the useable area.
 		//usable area is therefore 320x405
 		float x = e.getRawX();
 		float y = e.getRawY() - TOP_PADDING;
-		//System.out.println("Single_Tap_Confirmed @(" + x + "," + y + ")");
 		
-		if(!StaticVariables.mainProject.videoBounds.contains(x, y))
+		if(!StaticVariables.mainProject.videoBounds.contains(x, y) || actionbarBoundary.contains(x, y) || textBounds.contains(x, y))
 		{
-			//resetOriginScalePointSetters();
 			return;
 		}
 		
-		//Possibly move this to the touch event (so it can be a double click)
 		if(isSettingOrigin)
 		{
 			displayOrigin(x, y + TOP_PADDING);
 		}
-		else if(isInOriginBounds(x, y)) //If the origin center point is clicked, lets the axis-be reset.
-		{
-			//Consider removing this unless it changes the cursor. Could be annoying or wierd to not know it's active.
-			//Maybe toggle the menu item? 
-			isSettingOrigin = true;
-		}
 		
 		if(plottingPoints)
 		{
-			if(StaticVariables.mainProject.options.doesThisTimeExist(getTime()))
+			if(StaticVariables.mainProject.doesThisTimeExist(getTime()))
 			{
 				return;
 			}
@@ -1192,203 +1100,148 @@ public class VideoActivity extends Activity
 			ImageView image = new ImageView(this);
 			image.setImageResource(R.drawable.point);
 			image.setAdjustViewBounds(true);
-			StaticVariables.mainProject.getOptions().registerPoint(new Point(x, y + TOP_PADDING, getTime(),image));
+			
+			final Point point = new Point(x, y + TOP_PADDING, getTime(),image);
+			point.imageView.setOnClickListener(new View.OnClickListener(){
+	    	    public void onClick(View v) {
+		    	    	if(isRemovingPoints)
+		    	    	{
+		    	    		StaticVariables.mainProject.removePointByValue(layout, point);
+		    	    	}
+	    	    	}
+	    	    });
+		
+			StaticVariables.mainProject.registerPoint(point);
+			
 			
 			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(2 * SIZE, 2 * SIZE);
 			params.leftMargin = (int) x - SIZE;
 			params.topMargin = (int) y - SIZE;			
-			layout.addView(image, params);			
+			layout.addView(image, params);	
+			
+			stepVideo(null);
+		}
+		if(isSettingScaleLeft)
+		{
+			
+			ImageView image = (ImageView) findViewById(R.id.image_view_scale);
+			Point rightPoint = StaticVariables.mainProject.scaleBoundary.points[1];
+			//Point leftPoint = StaticVariables.mainProject.scaleBoundary.centerOfLeftLine();
+			//Point centerPoint = StaticVariables.mainProject.scaleBoundary.getPerfectCenter();
+		    Point leftPoint = new Point(x, y);
+		    StaticVariables.mainProject.scaleBoundary.points[0] = leftPoint;
+			
+			double lineLength = lineLength(rightPoint.getX(), rightPoint.getY(), x, y);
+						
+			double angle = angleBetweenTwoVectors(rightPoint.x, rightPoint.y, getWidth(), rightPoint.y, leftPoint.x, leftPoint.y);
+			
+			angle*=-1;
+			
+			//double angle = angleBetweenTwoVectors(rightPoint.x, rightPoint.y, x, y, leftPoint.getX(), leftPoint.getY());
+			StaticVariables.mainProject.scaleBoundary.totalRot = angle;	
+			//StaticVariables.mainProject.scaleBoundary.updateLengthLeft(lineLength);
+			//StaticVariables.mainProject.scaleBoundary.rotateOnRightCenter(angle);
+			
+			System.out.println("angle=" + angle);
+			
+		    double left = StaticVariables.mainProject.scaleBoundary.points[0].x;
+		    double right = StaticVariables.mainProject.scaleBoundary.points[0].x;
+		    double top = StaticVariables.mainProject.scaleBoundary.points[0].y;
+		    double bottom = StaticVariables.mainProject.scaleBoundary.points[0].y;
+		    
+		    for(int i = 0; i < StaticVariables.mainProject.scaleBoundary.points.length; i++)
+		    {
+		    	Point p = StaticVariables.mainProject.scaleBoundary.points[i];
+		    	
+		    	if(p.x < left)
+		    		left = p.x;
+		    	if(p.x > right)
+		    		right = p.x;
+		    	if(p.y < top)
+		    		top = p.y;
+		    	if(p.y > bottom)
+		    		bottom = p.y;
+		    }
+		    
+		    
+		    Matrix matrix = new Matrix();
+			image.setScaleType(ScaleType.MATRIX);
+			matrix.setRotate((float)(StaticVariables.mainProject.scaleBoundary.totalRot));//, (int)rightPoint.getX(), (int)rightPoint.getY());
+
+			Bitmap resizedBitmap = getResizedBitmap(StaticVariables.scaleImage, (int)lineLength, StaticVariables.scaleImage.getHeight());
+		    Bitmap img2 = Bitmap.createBitmap(resizedBitmap, 0, 0, resizedBitmap.getWidth(), resizedBitmap.getHeight(), matrix, true);
+		    image.setImageBitmap(img2);			 
+		  			    
+		    double hypotenuse = Math.sqrt(Math.pow(bottom - top, 2) + Math.pow(right-left, 2));
+		    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)hypotenuse, (int)hypotenuse);
+		    params.leftMargin = (int) (left);
+		    params.topMargin = (int) top;			    
+		    
+		    image.setLayoutParams(params);
+		    
+		    //move the image to where it should be... not (0, 0)
+		    //layout.removeView(image);
+		   //layout.addView(image, params);			    
+        	
+		}
+		if(isSettingScaleRight)
+		{
+			ImageView image = (ImageView) findViewById(R.id.image_view_scale);
+			Point leftPoint = StaticVariables.mainProject.scaleBoundary.points[0];
+			//Point leftPoint = StaticVariables.mainProject.scaleBoundary.centerOfLeftLine();
+			//Point centerPoint = StaticVariables.mainProject.scaleBoundary.getPerfectCenter();
+		    Point rightPoint = new Point(x, y);
+		    StaticVariables.mainProject.scaleBoundary.points[1] = rightPoint;
+			
+			double lineLength = lineLength(leftPoint.getX(), leftPoint.getY(), x, y);
+
+			double angle = angleBetweenTwoVectors(leftPoint.x, leftPoint.y, getWidth(), leftPoint.y, rightPoint.x, rightPoint.y);
+			
+			angle*=-1;
+
+			StaticVariables.mainProject.scaleBoundary.totalRot = angle;	
+			
+		    double left = StaticVariables.mainProject.scaleBoundary.points[0].x;
+		    double right = StaticVariables.mainProject.scaleBoundary.points[0].x;
+		    double top = StaticVariables.mainProject.scaleBoundary.points[0].y;
+		    double bottom = StaticVariables.mainProject.scaleBoundary.points[0].y;
+		    
+		    for(int i = 0; i < StaticVariables.mainProject.scaleBoundary.points.length; i++)
+		    {
+		    	Point p = StaticVariables.mainProject.scaleBoundary.points[i];
+		    	
+		    	if(p.x < left)
+		    		left = p.x;
+		    	if(p.x > right)
+		    		right = p.x;
+		    	if(p.y < top)
+		    		top = p.y;
+		    	if(p.y > bottom)
+		    		bottom = p.y;
+		    }
+		    
+		    Matrix matrix = new Matrix();
+			image.setScaleType(ScaleType.MATRIX);
+			matrix.setRotate((float)(StaticVariables.mainProject.scaleBoundary.totalRot));//, (int)primaryPoint.getX(), (int)primaryPoint.getY());
+
+			Bitmap resizedBitmap = getResizedBitmap(StaticVariables.scaleImage, (int)lineLength, StaticVariables.scaleImage.getHeight());
+		    Bitmap img2 = Bitmap.createBitmap(resizedBitmap, 0, 0, resizedBitmap.getWidth(), resizedBitmap.getHeight(), matrix, true);
+		    image.setImageBitmap(img2);			 
+		  			    
+		    double hypotenuse = Math.sqrt(Math.pow(bottom - top, 2) + Math.pow(right-left, 2));
+		    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)hypotenuse, (int)hypotenuse);
+		    params.leftMargin = (int) (left);
+		    params.topMargin = (int) top;			    
+		    
+		    image.setLayoutParams(params);
+		    
+		    
 		}
 		
 	}
 	
-	public double getTime()
-	{
-		return videoView.getCurrentPosition();
-	}
-	
 	public void mouseMove(MotionEvent e)
 	{
-		loops = 0;
-
-		if(System.currentTimeMillis() > next_game_tick && loops < MAX_FRAMESKIP)
-	    {
-			float x = e.getRawX();
-			float y = e.getRawY() - TOP_PADDING;
-			
-			if(!StaticVariables.mainProject.videoBounds.contains(x, y))
-			{
-				//resetOriginScalePointSetters();
-				//return;
-			}
-			
-			if(isSettingScaleLeft)
-			{
-				ImageView image = (ImageView) findViewById(R.id.image_view_scale);
-				Point rightPoint = StaticVariables.mainProject.scaleBoundary.centerOfRightLine();
-				Point leftPoint = StaticVariables.mainProject.scaleBoundary.centerOfLeftLine();
-				Point centerPoint = StaticVariables.mainProject.scaleBoundary.getPerfectCenter();
-			    
-				double lineLength = lineLength(rightPoint.getX(), rightPoint.getY(), x, y);
-				
-				System.out.println(">>" + lineLength);
-				
-				double angle = angleBetweenTwoVectors(rightPoint.x, rightPoint.y, x, y, leftPoint.getX(), leftPoint.getY());
-				StaticVariables.mainProject.scaleBoundary.totalRotLeft += angle;				
-				
-				StaticVariables.mainProject.scaleBoundary.updateLengthLeft(lineLength);
-				StaticVariables.mainProject.scaleBoundary.rotateOnRightCenter(angle);
-				
-			    double left = StaticVariables.mainProject.scaleBoundary.points[0].x;
-			    double right = StaticVariables.mainProject.scaleBoundary.points[0].x;
-			    double top = StaticVariables.mainProject.scaleBoundary.points[0].y;
-			    double bottom = StaticVariables.mainProject.scaleBoundary.points[0].y;
-			    
-			    for(int i = 0; i < StaticVariables.mainProject.scaleBoundary.points.length; i++)
-			    {
-			    	Point p = StaticVariables.mainProject.scaleBoundary.points[i];
-			    	
-			    	if(p.x < left)
-			    		left = p.x;
-			    	if(p.x > right)
-			    		right = p.x;
-			    	if(p.y < top)
-			    		top = p.y;
-			    	if(p.y > bottom)
-			    		bottom = p.y;
-			    }
-			    
-			    Matrix matrix = new Matrix();
-				image.setScaleType(ScaleType.MATRIX);
-				matrix.setRotate((float)(StaticVariables.mainProject.scaleBoundary.totalRotRight + StaticVariables.mainProject.scaleBoundary.totalRotLeft), (int)centerPoint.getX(), (int)centerPoint.getY());//, (int)rightPoint.getX(), (int)rightPoint.getY()
-
-				Bitmap resizedBitmap = getResizedBitmap(StaticVariables.scaleImage, (int)lineLength, StaticVariables.scaleImage.getHeight());
-			    Bitmap img2 = Bitmap.createBitmap(resizedBitmap, 0, 0, resizedBitmap.getWidth(), resizedBitmap.getHeight(), matrix, true);
-			    image.setImageBitmap(img2);			 
-			    
-			    /*
-			    DrawablePanel panel_drawing = (DrawablePanel)(findViewById(R.id.drawable_area_paint_thing));
-			    panel_drawing.redraw(new Point[] {
-					 	new Point(left, top),
-					 	new Point(right, top),
-					 	new Point(right, bottom),
-					 	new Point(left, bottom),
-					 	new Point(left, top),
-					 	scaleBoundary.points[0],
-					 	scaleBoundary.points[1],
-					 	scaleBoundary.points[2],
-					 	scaleBoundary.points[3], scaleBoundary.points[0], rightPoint, leftPoint,
-					 	scaleBoundary.leftBoundary.points[0],
-					 	scaleBoundary.leftBoundary.points[1],
-					 	scaleBoundary.leftBoundary.points[2],
-					 	scaleBoundary.leftBoundary.points[3],
-					 	scaleBoundary.leftBoundary.points[0],
-					 	scaleBoundary.rightBoundary.points[0],
-						scaleBoundary.rightBoundary.points[1],
-						scaleBoundary.rightBoundary.points[2],
-						scaleBoundary.rightBoundary.points[3],
-						scaleBoundary.rightBoundary.points[0]
-				});
-			    */
-			    
-			    double hypotenuse = Math.sqrt(Math.pow(bottom - top, 2) + Math.pow(right-left, 2));
-			    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)hypotenuse, (int)hypotenuse);
-			    params.leftMargin = (int) (left);
-			    params.topMargin = (int) top;			    
-			    //move the image to where it should be... not (0, 0)
-			    layout.removeView(image);
-			    layout.addView(image, params);	
-			    
-			    RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT); 
-			    params1.setMargins(0, 0, (int)(getWidth() * 0.4), getHeight() / 10);
-			    
-	        	EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));
-	        	scaleText.setLayoutParams(params1);
-	 		}
-			else if(isSettingScaleRight)
-			{
-				ImageView image = (ImageView) findViewById(R.id.image_view_scale);
-				Point rightPoint = StaticVariables.mainProject.scaleBoundary.centerOfRightLine();
-				Point leftPoint = StaticVariables.mainProject.scaleBoundary.centerOfLeftLine();
-				Point centerPoint = StaticVariables.mainProject.scaleBoundary.getPerfectCenter();
-			    double lineLength = lineLength(leftPoint.getX(), leftPoint.getY(), x, y);
-				double angle = angleBetweenTwoVectors(leftPoint.getX(), leftPoint.getY(), x, y, rightPoint.x, rightPoint.y);
-				StaticVariables.mainProject.scaleBoundary.totalRotRight += angle;				
-				StaticVariables.mainProject.scaleBoundary.updateLengthRight(lineLength);
-				StaticVariables.mainProject.scaleBoundary.rotateOnLeftCenter(angle);
-				
-				double left = StaticVariables.mainProject.scaleBoundary.points[0].x;
-			    double right = StaticVariables.mainProject.scaleBoundary.points[0].x;
-			    double top = StaticVariables.mainProject.scaleBoundary.points[0].y;
-			    double bottom = StaticVariables.mainProject.scaleBoundary.points[0].y;
-			    
-			    for(int i = 0; i < StaticVariables.mainProject.scaleBoundary.points.length; i++)
-			    {
-			    	Point p = StaticVariables.mainProject.scaleBoundary.points[i];
-			    	
-			    	if(p.x < left)
-			    		left = p.x;
-			    	if(p.x > right)
-			    		right = p.x;
-			    	if(p.y < top)
-			    		top = p.y;
-			    	if(p.y > bottom)
-			    		bottom = p.y;			    	
-			    }
-			    
-			    Matrix matrix = new Matrix();
-				image.setScaleType(ScaleType.MATRIX);
-				matrix.setRotate((float)(StaticVariables.mainProject.scaleBoundary.totalRotRight + StaticVariables.mainProject.scaleBoundary.totalRotLeft), (int)centerPoint.getX(), (int)centerPoint.getY());//, (int)rightPoint.getX(), (int)rightPoint.getY()
-		
-				Bitmap resizedBitmap = getResizedBitmap(StaticVariables.scaleImage, (int)lineLength, StaticVariables.scaleImage.getHeight());
-			    Bitmap img2 = Bitmap.createBitmap(resizedBitmap, 0, 0, resizedBitmap.getWidth(), resizedBitmap.getHeight(), matrix, true);
-			    image.setImageBitmap(img2);
-			    	
-			    /*
-			    DrawablePanel panel_drawing = (DrawablePanel)(findViewById(R.id.drawable_area_paint_thing));
-			    panel_drawing.redraw(new Point[] {
-					 	new Point(left, top),
-					 	new Point(right, top),
-					 	new Point(right, bottom),
-					 	new Point(left, bottom),
-					 	new Point(left, top),					 	
-					 	scaleBoundary.points[0],
-					 	scaleBoundary.points[1],
-					 	scaleBoundary.points[2],
-					 	scaleBoundary.points[3], scaleBoundary.points[0], rightPoint, leftPoint,
-					 	scaleBoundary.leftBoundary.points[0],
-					 	scaleBoundary.leftBoundary.points[1],
-					 	scaleBoundary.leftBoundary.points[2],
-					 	scaleBoundary.leftBoundary.points[3],
-					 	scaleBoundary.leftBoundary.points[0],					 	
-					 	scaleBoundary.rightBoundary.points[0],
-						scaleBoundary.rightBoundary.points[1],
-						scaleBoundary.rightBoundary.points[2],
-						scaleBoundary.rightBoundary.points[3],
-						scaleBoundary.rightBoundary.points[0]					
-			    });
-			    */
-			    
-			    double hypotenuse = Math.sqrt(Math.pow(bottom - top, 2) + Math.pow(right-left, 2));
-			    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)hypotenuse, (int)hypotenuse);
-			    params.leftMargin = (int) (left);
-			    params.topMargin = (int) top;			    
-			    //move the image to where it should be... not (0, 0)
-			    layout.removeView(image);
-			    layout.addView(image, params);			
-			
-
-
-			    RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT); 
-			    params1.setMargins(0, 0, (int)(getWidth() * 0.4), getHeight() / 10);
-			    
-	        	EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));
-	        	scaleText.setLayoutParams(params1);
-	 		}
-			
-			next_game_tick += SKIP_TICKS;
-	        loops++;
-	    }
 	}
 	
 	public boolean onDoubleTapEvent(MotionEvent e) 
@@ -1417,6 +1270,18 @@ public class VideoActivity extends Activity
 	
 	public boolean dispatchTouchEvent(MotionEvent event) 
 	{
+		if(actionbarBoundary == null)
+		{
+	    	final LinearLayout linearLayout = (LinearLayout)(findViewById(R.id.action_bar_layout));
+	    	
+			actionbarBoundary = new Boundary(new Point[] {
+					new Point(linearLayout.getLeft(), linearLayout.getTop()),
+					new Point(linearLayout.getRight(), linearLayout.getTop()),
+					new Point(linearLayout.getRight(), linearLayout.getBottom() ),
+					new Point(linearLayout.getLeft(), linearLayout.getBottom())					
+			});
+		}
+		
 		if(!topPaddingUpdated)
 		{
 			TOP_PADDING = getHeight() - layout.getMeasuredHeight();
@@ -1424,7 +1289,8 @@ public class VideoActivity extends Activity
 			int left = videoView.getLeft();
 			int right = videoView.getRight();
 			int top = videoView.getTop();
-			int bottom = videoView.getBottom();;
+			int bottom = videoView.getBottom();
+			
 			
 			StaticVariables.mainProject.videoBounds = new Boundary(new Point[] { new Point(left, top), new Point(right, top), new Point(right, bottom), new Point(left, bottom) });
 			topPaddingUpdated = true;
@@ -1442,21 +1308,10 @@ public class VideoActivity extends Activity
 		if(event.getAction() == MotionEvent.ACTION_UP)
 	   	{
 			mouseOnSingleTap(event);
-			isSettingScaleRight = false;
-			isSettingScaleLeft = false;
 	   	}
-		
-	   	if(isScaleMeasureDisplayed)
-	   	{
-	   		EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));        	
-        	scaleText.setVisibility(View.VISIBLE);
-	   	}
-	   	else
-	   	{
-	   		EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));        	
-        	scaleText.setVisibility(View.INVISIBLE);
-	   	}
-	   	
+			   	
 	    return super.dispatchTouchEvent(event);
 	}
+
+
 }

@@ -1,0 +1,24 @@
+Beta 1.5.2
+Stable Release, bug fixes. Functionality seems fully added
+
+Beta 1.5.3
+>Fixed time displaying incorrectly (in ms not s)
+>Added new StaticVariable "clip", the movie file
+>(hopefully) fixed axis-text on the graphs. it should scale based on user preference, or at least be 
+	a scalable size 20
+>Video only steps when plotting points. 
+
+Beta 1.5.4
+>Number Picked has become an edittext, allowing the frame to be chosen by a user number input.
+>Added a new Preference (EditText) allowing the frameskip # to be chosen. Default value = 1.
+>Added a new class WritablePoint, a point without an imageview. This is actually writable to file without an I/O Error.
+>OptionsObject was becoming pointless, merged the only useful bits left into the project class
+>Fixed file saving. This time for real. Saving is basically just data structures now, not entire classes.
+
+Beta 1.5.6
+>Fixed graphs 
+	-fixed height and width not scaling properly
+	-graphs now connect the points (maybe add an option to disable this, later)
+>Move frame skip to preferences, replace that with an EditText that displays the frame selected/allows skipping. (Regulate to 30 fps)
+
+Beta 1.5.7

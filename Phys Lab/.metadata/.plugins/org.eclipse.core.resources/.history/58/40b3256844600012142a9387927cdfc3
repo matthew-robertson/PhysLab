@@ -1,0 +1,125 @@
+package gui.activities;
+
+import java.io.File;
+
+import utils.preferences.MessageBox;
+
+import global.StaticVariables;
+import gui.components.AutoResizeTextView;
+import android.os.Bundle;
+import android.os.Environment;
+import android.app.Activity;
+import android.content.Intent;
+import android.view.Menu;
+import android.view.MenuItem;
+
+public class TitleActivity extends Activity 
+{
+	public final static String TITLE_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String TITLE_KEY = "gui.activities.TitleActivity";
+	
+	protected void onCreate(Bundle savedInstanceState) 
+	{
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_title);
+	
+		
+	}
+
+	public boolean onCreateOptionsMenu(Menu menu) 
+	{
+		getMenuInflater().inflate(R.menu.activity_title, menu);
+		return true;
+	}
+	
+	
+	public boolean onOptionsItemSelected(MenuItem item) 
+    {
+        // Handle item selection
+        switch (item.getItemId()) 
+        {
+            case 1:
+            	
+            	
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+	
+	private String[] queryForFilesInternally() {
+		File[] files = getFilesDir().listFiles();
+		String[] strings = new String[files.length];
+		int totalValues = 0;
+		for (int i = 0; i < strings.length; i++) 
+		{
+			if(files[i].toString().endsWith(".physdat"))
+			{
+				strings[totalValues] = trimFilepath(files[i].toString());
+				totalValues++;						
+			}
+		}
+		
+		String[] betterValues = new String[totalValues];
+		for(int i = 0; i < totalValues; i++)
+		{
+			betterValues[i] = strings[i];
+		}
+		
+		return betterValues;
+	}
+	
+	public String trimFilepath(String path) {
+		return path.substring(path.lastIndexOf("/") + 1, path.indexOf(".physdat"));
+	}
+
+	private String[] queryForFilesExternally() {
+		if (canReadStorage()) {
+			File[] files = getExternalFilesDir(null).listFiles();
+			String[] strings = new String[files.length];
+			int totalValues = 0;
+			for (int i = 0; i < strings.length; i++) 
+			{
+				if(files[i].toString().endsWith(".physdat"))
+				{
+					strings[totalValues] = trimFilepath(files[i].toString());
+					totalValues++;						
+				}
+			}
+			
+			String[] betterValues = new String[totalValues];
+			for(int i = 0; i < totalValues; i++)
+			{
+				betterValues[i] = strings[i];
+			}
+			return betterValues;
+		}
+
+		return new String[] {};
+	}
+	
+	public boolean canReadStorage() {
+		String state = Environment.getExternalStorageState();
+		if (Environment.MEDIA_MOUNTED.equals(state)
+				|| Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+			// We can read
+			return true;
+		}
+		return false;
+	}
+
+	public void openPreferences() {
+		
+		if(StaticVariables.mainProject == null)
+		{
+			MessageBox msgbox = new MessageBox("Create a new project before setting preferences");
+			msgbox.show(getFragmentManager(), "err_pref_no_project");
+		}
+		else
+		{
+			Intent intent = new Intent(this, PreferencesActivity.class);
+			intent.putExtra(VIDEO_SELECT_ACTIVITY, NAME_ACTIVITY_VIDEO_SELECT);
+			startActivity(intent);
+		}
+	}
+}

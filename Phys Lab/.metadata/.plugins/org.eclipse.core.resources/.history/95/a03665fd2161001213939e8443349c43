@@ -1,0 +1,408 @@
+package gui.activities;
+
+import global.StaticVariables;
+
+import java.io.File;
+import java.io.FilenameFilter;
+
+import project.Project;
+import utils.file.FileUtils;
+import utils.preferences.ChooseProjectDialog;
+import utils.preferences.MessageBox;
+import utils.preferences.VideoConfirmDialogFragment;
+import android.app.DialogFragment;
+import android.app.ListActivity;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.media.ThumbnailUtils;
+import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.ListView;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+
+public class VideoSelect extends ListActivity 
+		implements VideoConfirmDialogFragment.VideoConfirmDialogListener, ChooseProjectDialog.ChooseProjectDialogListener 
+{
+
+	private File sdlist;
+	private String[] videos;
+	private Bitmap[] videoThumb;
+	private TextView selection;
+	public final static String VIDEO_SELECT_ACTIVITY = "gui.activities.PREFERENCE_MESSAGE";
+	public final static String VIDEO_SELECT_KEY = "gui.activities.VideoSelect";
+	public final static String NAME_ACTIVITY_VIDEO_SELECT = "video_select_activity";
+	private final static String VIDEO_ERROR_NONE_FOUND = "There dont seem to be any videos available on external storage. "
+			+ "Please add videos to the root directory of your sd card (external storage).";
+	private final static String WRN_MSG_CHANGE_VIDEO = "Changing the video used will reset origin, scale, and points";
+	private final static String ERROR_VIDEO_LOAD_INVALID = "Loaded Reference to invalid/non-existance video. Select a new video from the list below.";
+	public final static String ERROR_EXTERNAL_STORAGE_NOT_READABLE = "We don't appear to have read rights on your device's storage device (most likely an SD card).";
+	
+	
+	public boolean canReadStorage() {
+		String state = Environment.getExternalStorageState();
+		if (Environment.MEDIA_MOUNTED.equals(state)
+				|| Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+			// We can read
+			return true;
+		}
+		return false;
+	}
+
+	public void openPreferences() {
+		
+		if(StaticVariables.mainProject == null)
+		{
+			MessageBox msgbox = new MessageBox("Create a new project before setting preferences");
+			msgbox.show(getFragmentManager(), "err_pref_no_project");
+		}
+		else
+		{
+			Intent intent = new Intent(this, PreferencesActivity.class);
+			intent.putExtra(VIDEO_SELECT_ACTIVITY, NAME_ACTIVITY_VIDEO_SELECT);
+			startActivity(intent);
+		}
+	}
+
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle item selection
+		switch (item.getItemId()) {
+		case R.id.action_bar_select_preferences:
+			openPreferences();
+			return true;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
+
+	public int getWidth() {
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.x;
+	}
+
+	public int getHeight() {
+		android.view.Display display = getWindowManager().getDefaultDisplay();
+		android.graphics.Point size = new android.graphics.Point();
+		display.getSize(size);
+		return size.y;
+	}
+
+	private String[] mergeArrays(String[] p1, String[] p2)
+	{
+		String[] newStrings = new String[p1.length + p2.length];
+		for(int i = 0; i < p1.length; i++)
+		{
+			newStrings[i] = p1[i];
+		}		
+		for(int i = 0; i < p2.length; i++)
+		{
+			newStrings[p1.length + i] = p2[i];
+		}
+		
+		return newStrings;
+	}
+	
+	int moviesIndex = 0;
+	
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_video_select);
+
+		try
+		{
+			Intent intent = getIntent();
+			String msg = intent.getStringExtra(VideoActivity.KEY_INTENT_WRN_MSG_CHANGE_VIDEO);
+		
+			if(msg.equals(VideoActivity.KEY_INTENT_WRN_MSG_CHANGE_VIDEO))
+			{
+				MessageBox msgbox = new MessageBox(WRN_MSG_CHANGE_VIDEO);
+		    	msgbox.show(getFragmentManager(), "wrn_msg_change_video");
+			}
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		
+		
+		if (canReadStorage()) {
+			sdlist = new File(Environment.getExternalStorageDirectory()
+					.toString());
+			
+			File moviesFolder = new File(Environment.getExternalStorageDirectory() + "/Movies/");
+			
+			// Create the filter for mp4s
+			
+			FilenameFilter filter = new FilenameFilter() {
+				public boolean accept(File directory, String fileName) {
+					return (fileName.endsWith(".mp4") || fileName.endsWith(".3gp")) ? true : false;
+				}
+			};
+
+			String[] p1 = sdlist.list(filter);
+			String[] p2 = moviesFolder.list(filter);
+			videos = mergeArrays(p1, p2);
+			
+			moviesIndex = p1.length;
+			
+		} else {
+			videos = new String[] {};
+		}
+
+		/*
+		if(videos.length == 0)
+		{
+			videos = new String[] { "!!!", "!!!", "!!!!", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1"
+				, "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "2!"};
+		}
+		*/
+		
+		if (videos.length == 0) {
+			RelativeLayout layout = (RelativeLayout) (findViewById(R.id.layout_select_video));
+			TextView textView = new TextView(this);
+			textView.setText(VIDEO_ERROR_NONE_FOUND);
+
+			layout.addView(textView);
+		} else {
+			final String[] listItems = new String[videos.length + 1];
+			listItems[0] = "Select a Video:";
+			for (int i = 1; i < listItems.length; i++) {
+				listItems[i] = videos[i - 1];
+			}
+
+			RelativeLayout.LayoutParams listParams = new RelativeLayout.LayoutParams(
+					(int) (getWidth() * 0.8), (int) (getHeight() * 0.9));
+			listParams.topMargin = 0;
+			listParams.leftMargin = (int) (getWidth() * 0.1);
+
+			/*
+			if (StaticVariables.mainProject == null) {
+				Button button = new Button(this);
+				button.setText("New Project");
+				button.setOnClickListener(new View.OnClickListener() {
+					public void onClick(View v) {
+						newProject();
+					}
+				});
+
+				Button button2 = new Button(this);
+				button2.setText("Open Project");
+				button2.setOnClickListener(new View.OnClickListener() {
+					public void onClick(View v) {
+						beginOpeningProject();
+					}
+				});
+
+				RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+						(int) ((getWidth() * 0.4)), (getHeight() / 10));
+				params.topMargin = 0;
+				params.leftMargin = (int) (getWidth() * 0.05);
+
+				RelativeLayout.LayoutParams params2 = new RelativeLayout.LayoutParams(
+						(int) ((getWidth() * 0.4)), (getHeight() / 10));
+				params2.topMargin = 0;
+				params2.leftMargin = (int) (getWidth() * 0.55);
+
+				RelativeLayout layout = (RelativeLayout) (findViewById(R.id.layout_select_video));
+				layout.addView(button, params);
+				layout.addView(button2, params2);
+
+				listParams.topMargin = (int) (getHeight() * 0.15);
+				listParams.leftMargin = (int) (getWidth() * 0.1);
+
+			}
+
+			*/	
+			
+			videoThumb = new Bitmap[videos.length];
+
+			for (int i = 1; i < videoThumb.length; i++) {
+				videoThumb[i] = ThumbnailUtils.createVideoThumbnail(
+						listItems[i], MediaStore.Video.Thumbnails.MICRO_KIND);
+			}
+
+			setListAdapter(new ArrayAdapter<String>(this, R.layout.vidlist,
+					R.id.video_name, listItems));
+
+			ListView videolist = getListView();
+
+			videolist.setLayoutParams(listParams);
+
+			videolist.setOnItemClickListener(new OnItemClickListener() {
+				public void onItemClick(AdapterView<?> parent, View view,
+						int position, long id) {
+					if (position != 0) {
+						if (StaticVariables.mainProject == null) {
+							MessageBox mb = new MessageBox(
+									"Please create a project first");
+							mb.show(getFragmentManager(), "create_proj_err");
+							return;
+						}
+						// Grab the selected item from the list of names
+						String fileName = (listItems[position]);
+						updateClip(fileName, ((position >= moviesIndex) ? true: false));
+						
+						// Launch VideoActivity
+						Intent i = new Intent(getApplicationContext(), VideoActivity.class);
+
+						
+						// Send data
+						i.putExtra(VIDEO_SELECT_KEY, fileName);
+						startActivity(i);
+					}
+				}
+			});
+		}
+	}
+	
+	public void updateClip(String filename, boolean isMovie)
+	{
+		 try
+	     {
+			//Check to make sure we can actually read the external memory
+	        if (canReadStorage())
+	        {
+	        	if(isMovie)
+	        	{
+	        		StaticVariables.mainProject.videoPath = "Movies/" + filename;
+	        	}
+	        	else
+	        	{
+	        		StaticVariables.mainProject.videoPath = filename;
+			    }
+	        	StaticVariables.clip = new File(Environment.getExternalStorageDirectory(), StaticVariables.mainProject.videoPath);
+	        	StaticVariables.clipChanged = true;
+	        }
+	        else {
+	        	MessageBox msgbox = new MessageBox(ERROR_EXTERNAL_STORAGE_NOT_READABLE);
+	        	msgbox.show(getFragmentManager(), "err_exter_store_unreadable");
+	        }
+        }
+        catch(Exception e)
+	    {
+        	e.printStackTrace();
+        }
+	}
+
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.activity_video_select, menu);
+		return true;
+	}
+
+	public void beginOpeningProject() {
+		String[] mergedFilePaths;
+		String[] internal = queryForFilesInternally();
+		String[] external = queryForFilesExternally();
+		mergedFilePaths = new String[internal.length + external.length];
+
+		for (int i = 0; i < internal.length; i++) {
+			mergedFilePaths[i] = internal[i];
+		}
+		for (int i = 0; i < external.length; i++) {
+			mergedFilePaths[internal.length + i] = external[i];
+		}
+
+		DialogFragment newFragment = new ChooseProjectDialog(mergedFilePaths,
+				internal.length - 1);
+		newFragment.show(getFragmentManager(), "open_project");
+	}
+
+	public void newProject() {
+		DialogFragment newFragment = new VideoConfirmDialogFragment();
+		newFragment.show(getFragmentManager(), "new_project");
+	}
+
+	public void onDialogPositiveClick(DialogFragment dialog, String message) {
+		// Confirm new
+		StaticVariables.mainProject = new Project(this);
+		StaticVariables.mainProject.setDimensions(getWidth(), getHeight());
+	}
+
+	public void onDialogNegativeClick(DialogFragment dialog, String message) {
+	}
+
+	public void openProject(DialogFragment dialog, String filePath, boolean storedInternally) {
+		Project proj = new Project(this);
+		boolean clipValid = proj.reconstruct(new FileUtils().loadWritable(this, filePath, storedInternally));
+		//proj.setPreferences(this);
+		
+		// Add a confirm dialog somewhere earlier? maybe for saving or
+		// something.
+		if (proj != null) {
+			StaticVariables.mainProject = proj;
+		}
+
+		if(clipValid)
+		{
+			Intent i = new Intent(getApplicationContext(), VideoActivity.class);
+			startActivity(i);
+		}
+		else
+		{
+			MessageBox msg = new MessageBox(ERROR_VIDEO_LOAD_INVALID);
+			msg.show(getFragmentManager(), "err_clip_invalid");
+		}
+	}
+
+	public String trimFilepath(String path) {
+		return path.substring(path.lastIndexOf("/") + 1, path.indexOf(".physdat"));
+	}
+
+	private String[] queryForFilesInternally() {
+		File[] files = getFilesDir().listFiles();
+		String[] strings = new String[files.length];
+		int totalValues = 0;
+		for (int i = 0; i < strings.length; i++) 
+		{
+			if(files[i].toString().endsWith(".physdat"))
+			{
+				strings[totalValues] = trimFilepath(files[i].toString());
+				totalValues++;						
+			}
+		}
+		
+		String[] betterValues = new String[totalValues];
+		for(int i = 0; i < totalValues; i++)
+		{
+			betterValues[i] = strings[i];
+		}
+		
+		return betterValues;
+	}
+
+	private String[] queryForFilesExternally() {
+		if (canReadStorage()) {
+			File[] files = getExternalFilesDir(null).listFiles();
+			String[] strings = new String[files.length];
+			int totalValues = 0;
+			for (int i = 0; i < strings.length; i++) 
+			{
+				if(files[i].toString().endsWith(".physdat"))
+				{
+					strings[totalValues] = trimFilepath(files[i].toString());
+					totalValues++;						
+				}
+			}
+			
+			String[] betterValues = new String[totalValues];
+			for(int i = 0; i < totalValues; i++)
+			{
+				betterValues[i] = strings[i];
+			}
+			return betterValues;
+		}
+
+		return new String[] {};
+	}
+
+}

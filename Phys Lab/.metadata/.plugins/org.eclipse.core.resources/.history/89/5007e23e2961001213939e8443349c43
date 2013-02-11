@@ -1,0 +1,5 @@
+package utils.preferences;
+
+public class EditTextDialog {
+
+}

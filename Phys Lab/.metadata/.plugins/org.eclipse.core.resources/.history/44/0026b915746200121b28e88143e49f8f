@@ -1,0 +1,40 @@
+package utils.file;
+
+import java.io.Serializable;
+
+import utils.graphing.ClickBoundary;
+import utils.graphing.Point;
+import utils.graphing.WritablePoint;
+
+public class WritableBoundary 
+		implements Serializable
+{
+	private static final long serialVersionUID = 1L;
+	public WritablePoint[] points; // Points making up the boundary   
+    public WritableClickBoundary leftBoundary;
+    public WritableClickBoundary rightBoundary;
+    public double totalRotLeft = 0;
+    public double totalRotRight = 0;
+    
+    public void setPoints(Point[] aPoints)
+    {
+    	this.points = new WritablePoint[aPoints.length];
+    	
+    	for(int i = 0; i < points.length; i++)
+    	{
+    		points[i] = new WritablePoint(aPoints[i]);
+    	}
+    }
+    
+    public void setLeftBoundary(ClickBoundary bounds)
+    {
+    	leftBoundary = new WritableClickBoundary();
+    	leftBoundary.setPoints(bounds.points);
+	}
+    
+    public void setRightBoundary(ClickBoundary bounds)
+    {
+    	rightBoundary = new WritableClickBoundary();
+    	rightBoundary.setPoints(bounds.points);
+    }
+}

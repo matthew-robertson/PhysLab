@@ -1,0 +1,366 @@
+package project;
+
+import gui.activities.R;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
+import utils.action.StackAction;
+import utils.file.WritableBoundary;
+import utils.file.WritableProject;
+import utils.graphing.Boundary;
+import utils.graphing.GraphUtils;
+import utils.graphing.GraphableObjectContainer;
+import utils.graphing.Point;
+import utils.graphing.WritablePoint;
+import android.content.Context;
+import android.preference.PreferenceManager;
+import android.widget.RelativeLayout;
+
+public class Project
+		implements Serializable
+{
+	private static final long serialVersionUID = 1L;
+	public GraphableObjectContainer graphable;
+	public StackAction actionStack;
+	public static final int ACTION_QUEUE_SIZE = 20;
+	public String projectName;
+	private final static String EXTERNAL_BASE_PATH = "/Phys Lab";
+	private static final String VERSION_CREATED = "Beta 1.2";
+	public double width;
+	public double height;
+	public Point origin;
+	public Boundary videoBounds;
+	public Boundary scaleBoundary;
+	public String scaleTextValue = "";
+	public String videoPath = "";
+	public boolean preferenceSaveInternally;
+	public int preferenceDistanceMeasure;
+	public int frameSkip = 1;
+	//
+	public List<Point> points;
+	private boolean dataChanged;
+	
+	public Project(Context context)
+	{
+		actionStack = new StackAction(ACTION_QUEUE_SIZE);
+		graphable = new GraphableObjectContainer();
+		projectName = "New Project";
+		//PreferenceManager.setDefaultValues(context, R.xml.preferences_menu, false);
+		width = 0;
+		height = 0;
+		origin = null;
+		preferenceDistanceMeasure = 1;
+		preferenceSaveInternally = true;
+		this.dataChanged = true;
+		points = new ArrayList<Point>();
+    }
+	
+	public Project(Context context, GraphableObjectContainer graphable, String projectName)
+	{
+		this.actionStack = new StackAction(ACTION_QUEUE_SIZE);
+		this.graphable = graphable;
+		this.projectName = projectName;
+		//PreferenceManager.setDefaultValues(context, R.xml.preferences_menu, false);
+		width = 0;
+		height = 0;
+		origin = null;
+		preferenceDistanceMeasure = 1;
+		preferenceSaveInternally = true;
+		this.dataChanged = true;
+		points = new ArrayList<Point>();
+	}
+		
+	public void reconstruct(WritableProject proj)
+	{
+		this.graphable = new GraphableObjectContainer();
+		this.actionStack = new StackAction(ACTION_QUEUE_SIZE);
+		this.projectName = proj.projectName;
+		this.width = proj.width;
+		this.height = proj.height;
+		this.setOrigin(proj.origin);
+		this.setVideoBounds(proj.videoBounds);
+		this.setScaleBounds(proj.scaleBoundary);
+		this.scaleTextValue = proj.scaleTextValue;
+		this.videoPath = proj.videoPath;
+		this.preferenceSaveInternally = proj.preferenceSaveInternally;
+		this.preferenceDistanceMeasure = proj.preferenceDistanceMeasure;
+		this.frameSkip = proj.frameSkip;
+		this.setPoints(proj.points);
+		this.dataChanged = proj.dataChanged;
+	}
+	
+	public WritableProject getAsWritable()
+	{
+		WritableProject proj = new WritableProject();
+		
+		proj.projectName = this.projectName;
+		proj.width = this.width;
+		proj.height = this.height;
+		proj.setOrigin(this.origin);
+		proj.setVideoBounds(this.videoBounds);
+		proj.setScaleBounds(this.scaleBoundary);
+		proj.scaleTextValue = this.scaleTextValue;
+		proj.videoPath = this.videoPath;
+		proj.preferenceSaveInternally = this.preferenceSaveInternally;
+		proj.preferenceDistanceMeasure = this.preferenceDistanceMeasure;
+		proj.frameSkip = this.frameSkip;
+		proj.setPoints(this.points);
+		proj.dataChanged = this.dataChanged;
+		
+		return proj;
+	}
+	
+	public void setPoints(List<WritablePoint> pointList)
+	{
+		points = new ArrayList<Point>();
+		
+		for(int i = 0; i < pointList.size(); i++)
+		{
+			points.add(new Point(pointList.get(i)));
+		}
+	}	
+	
+	public void setOrigin(WritablePoint point)
+	{
+		origin = new Point(point);
+	}
+	
+	public void setVideoBounds(WritableBoundary bounds)
+	{
+		videoBounds = new Boundary(bounds);
+	}
+	
+	public void setScaleBounds(WritableBoundary bounds)
+	{
+		scaleBoundary = new Boundary(bounds);
+	}
+	
+	public void updateGraphable(Context context, double scaleMeasure)
+	{
+		GraphUtils utils = new GraphUtils();
+		Point[] points = getPointsAsArray();
+		graphable = utils.convertRawDataToGraphable(points, context, scaleMeasure);
+	}
+	
+	public StackAction getActionStack()
+	{
+		return actionStack;
+	}
+	
+	public String getProjectName()
+	{
+		return projectName;
+	}
+	
+	public void setProjectName(String str)
+	{
+		this.projectName = str;
+	}
+	
+	public GraphableObjectContainer getGraphable()
+	{
+		return graphable;
+	}
+	
+	public Project setGraphable(GraphableObjectContainer graphable)
+	{
+		this.graphable = graphable;
+		return this;
+	}
+	
+	public void setDimensions(double width, double height)
+	{
+		verifyDimensionsMatch(this.width, this.height, width, height);
+		this.width = width;
+		this.height = height;
+	}
+	
+	/**
+	 * @untested verify this works.
+	 * Untested Method. Should adjust the scale, and origin in a saved project. Also the points.
+	 * 
+	 * @param oldWidth
+	 * @param oldHeight
+	 * @param newWidth
+	 * @param newHeight
+	 */
+	public void verifyDimensionsMatch(double oldWidth, double oldHeight, double newWidth, double newHeight)
+	{
+		if((oldWidth != newWidth || oldHeight != newHeight) && newWidth != 0 && newHeight != 0 && oldWidth != 0 && oldHeight != 0)
+		{
+			origin.x = (origin.x / oldWidth) * newWidth;
+			origin.y = (origin.y / oldHeight) * newHeight;
+			
+			for(int i = 0; i < 4; i++)
+			{
+				scaleBoundary.points[i].x = (scaleBoundary.points[i].x / oldWidth) * newWidth;
+				scaleBoundary.points[i].y = (scaleBoundary.points[i].y / oldHeight) * newHeight;
+				scaleBoundary.leftBoundary.points[i].x = (scaleBoundary.leftBoundary.points[i].x / oldWidth) * newWidth;
+				scaleBoundary.leftBoundary.points[i].y = (scaleBoundary.leftBoundary.points[i].y / oldHeight) * newHeight;
+				scaleBoundary.rightBoundary.points[i].x = (scaleBoundary.rightBoundary.points[i].x / oldWidth) * newWidth;
+				scaleBoundary.rightBoundary.points[i].y = (scaleBoundary.rightBoundary.points[i].y / oldHeight) * newHeight;
+			}
+			
+			for(WritablePoint point : points)
+			{
+				point.x = (point.x / oldWidth) * newWidth;
+				point.y = (point.y / oldHeight) * newHeight;
+			}
+		}
+	}
+	
+	
+	public boolean doesThisTimeExist(double d)
+	{
+		for(int i = 0; i < points.size(); i++)
+		{
+			if(d == points.get(i).timeStamp)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public boolean removePointByTime(RelativeLayout layout, double time)
+	{
+		System.out.println("time=" + time);
+		for(int i = 0; i < points.size(); i++)
+		{
+			System.out.println(points.get(i).timeStamp);
+			if(time == points.get(i).timeStamp)
+			{
+				layout.removeView(points.get(i).imageView);
+				points.remove(i);
+				return true;
+			}
+		}		
+		return false;
+	}	
+	
+	public void clearAllPoints(RelativeLayout layout)
+	{
+		for(Point point : points)
+		{
+			if(point.imageView != null && layout != null)
+			{
+				layout.removeView(point.imageView);
+			}
+		}
+		points.clear(); //Or make it new again
+		
+	//	clearTimes();
+		
+		dataChanged = true;
+	}
+	
+	public void registerPoint(Point point)
+	{
+		points.add(point);
+		//timesUsed.add(point.getTimeStamp());
+		dataChanged = true;
+	}
+	
+	public void clearPoint(RelativeLayout layout, int index)
+	{
+		try 
+		{
+			Point point = points.get(index);
+			if(point.imageView != null && layout != null)
+			{
+				layout.removeView(point.imageView);
+			}
+			
+			/*
+			if(point.timeStamp == timesUsed.get(index))
+			{
+				timesUsed.remove(index);
+			}
+			else
+			{
+				for(int i = 0; i < timesUsed.size(); i++)
+				{
+					if(timesUsed.get(i) == point.x)
+					{
+						timesUsed.remove(i);
+						break;
+					}
+				}
+			}
+		
+			*/
+			points.remove(index);
+			dataChanged = true;
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public List<Point> getPoints()
+	{
+		return points;
+	}
+	
+	public Point[] getPointsAsArray()
+	{
+		Point[] newPoints = new Point[points.size()];
+		
+		for(int i = 0; i < points.size(); i++)
+		{
+			newPoints[i] = points.get(i);
+		}
+		
+		return newPoints;
+	}
+	
+	public void setDataChanged(boolean flag)
+	{
+		this.dataChanged = flag;
+	}
+	
+	public void setDataUnchanged()
+	{
+		this.dataChanged = false;
+	}
+	
+	public boolean getDataChanged()
+	{
+		return dataChanged;
+	}
+	
+	public int getPointCount()
+	{
+		return points.size();
+	}	
+	
+	public Point removeLastPoint(RelativeLayout layout)
+	{
+		Point point = null;
+		try
+		{
+			point = points.get(points.size() - 1);
+			
+			if(point.imageView != null && layout != null)
+			{
+				layout.removeView(point.imageView);
+			}
+			points.remove(points.size() - 1);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		return point;
+	}
+	
+	
+	
+	
+	
+	
+	
+}	

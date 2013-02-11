@@ -1,0 +1,16 @@
+
+	[minor-likely creating it ATM bug] Make the edittext for the scale boundary always show when setting the scale.
+	
+	[graphs are bugged, somehow]
+	
+	backdate 15->11
+	
+	[major-cosmetic] add icons, update actionbar icons.
+	
+	//[minor bug] numbers should only go sci-not if <0.1, >1000
+	
+	//replace save with menu button. autosave it.
+	
+	//[Substancial-Annoyance] preferences in general arent being set on project load. 
+	
+

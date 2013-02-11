@@ -1,2 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<typeInfoHistroy/>
+<typeInfoHistroy>
+<typeInfo handle="=Phys Lab/src&lt;utils.preferences{ChooseProjectDialog.java[ChooseProjectDialog" modifiers="1" timestamp="1358437594000"/>
+<typeInfo handle="=Phys Lab/src&lt;gui.activities{TitleActivity.java[TitleActivity" modifiers="1" timestamp="1358665706000"/>
+<typeInfo handle="=Phys Lab/src&lt;gui.activities{GraphingActivity.java[GraphingActivity" modifiers="1" timestamp="1358665458000"/>
+<typeInfo handle="=Phys Lab/src&lt;utils.graphing{GraphUtils.java[GraphUtils" modifiers="1" timestamp="1358465780000"/>
+<typeInfo handle="=Phys Lab/src&lt;utils.file{WritableProject.java[WritableProject" modifiers="1" timestamp="1358641658000"/>
+<typeInfo handle="=Phys Lab/src&lt;utils.graphing{Boundary.java[Boundary" modifiers="1" timestamp="1358641682000"/>
+<typeInfo handle="=Phys Lab/src&lt;project{Project.java[Project" modifiers="1" timestamp="1358651220000"/>
+<typeInfo handle="=Phys Lab/src&lt;utils.file{FileUtils.java[FileUtils" modifiers="1" timestamp="1358656680000"/>
+</typeInfoHistroy>

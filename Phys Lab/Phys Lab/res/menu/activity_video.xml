@@ -1,95 +1,35 @@
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
-    
-    <!-- Undo -->
-    <!-- 
-    <item android:id="@+id/action_bar_undo"
-        android:title="@string/action_bar_undo"
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <!-- Main Menu -->
+    <item
+        android:id="@+id/action_bar_main_menu"
         android:orderInCategory="100"
-        android:showAsAction="ifRoom|withText" 
-        android:visible="true" 
-        android:titleCondensed="@string/action_bar_undo" 
-        android:enabled="true"/>
-    -->
-    
-    <!-- Remove Point -->
-    <item android:id="@+id/action_bar_remove_point"
-        android:title="Remove Point"
-        android:orderInCategory="100"
-        android:showAsAction="ifRoom|withText" 
-        android:visible="true" 
-        android:titleCondensed="Remove Point" 
-        android:enabled="true"/>
-    
-    <!-- Open Graphs -->
-    <item android:id="@+id/action_bar_graph"
-        android:title="@string/action_bar_graph"
-        android:orderInCategory="100"
-        android:showAsAction="ifRoom|withText" 
-        android:visible="true" 
-        android:titleCondensed="@string/action_bar_graph" 
-        android:enabled="true"/>
-    
-    <!-- Project Dropdown menu -->
-    <item android:id="@+id/action_bar_file_menu"
-        android:title="@string/action_bar_file_menu"
-        android:orderInCategory="100"
-        android:showAsAction="ifRoom|withText">
-        <menu>
-		    <!-- Save Project -->
-		    <item android:id="@+id/action_bar_save_video"
-		        android:title="@string/action_bar_save"
-		        android:orderInCategory="100"
-		        android:showAsAction="ifRoom|withText" />
-		    <!-- New Project -->
-		    <item android:id="@+id/action_bar_new_project_video"
-		        android:title="@string/action_bar_new_project"
-		        android:orderInCategory="100"
-		        android:showAsAction="ifRoom|withText" />
-		    <!-- Open Project -->
-		    <item android:id="@+id/action_bar_open_project_video"
-		        android:title="@string/action_bar_open_project"
-		        android:orderInCategory="100"
-		        android:showAsAction="ifRoom|withText" />
-        </menu>
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_main_menu">
     </item>
-    
-    <!-- Plot Points (Toggle) -->
-    <item android:id="@+id/action_bar_plot_points"
-        android:title="@string/action_bar_plot_points_start"
+
+    <!-- Open Graphs -->
+    <item
+        android:id="@+id/action_bar_graph"
+        android:enabled="true"
         android:orderInCategory="100"
-        android:showAsAction="ifRoom|withText" 
-        android:visible="true" 
-        android:titleCondensed="@string/action_bar_plot_points" 
-        android:enabled="true"/>
-    
-    <!-- Set Scale -->
-    <item android:id="@+id/action_bar_set_scale"
-        android:title="@string/action_bar_set_scale"
-        android:orderInCategory="100"
-        android:showAsAction="ifRoom|withText" 
-        android:visible="true" 
-        android:titleCondensed="@string/action_bar_set_scale" 
-        android:enabled="true"/>
-    
-    <!-- Set Origin -->
-    <item android:id="@+id/action_bar_set_origin"
-        android:title="@string/action_bar_set_origin"
-        android:orderInCategory="100"
-        android:showAsAction="ifRoom|withText" 
-        android:visible="true" 
-        android:titleCondensed="@string/action_bar_set_origin" 
-        android:enabled="true"/>
-    
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_graph"
+        android:titleCondensed="@string/action_bar_graph"
+        android:visible="true"/>
+
     <!-- Preferences -->
-    <item android:id="@+id/preferences_item"
-        android:title="@string/action_bar_preferences"
+    <item
+        android:id="@+id/preferences_item"
         android:orderInCategory="100"
-        android:showAsAction="ifRoom|withText" />
-    
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_preferences"/>
+
     <!-- Change Video -->
-    <item android:id="@+id/action_bar_change_video"
-        android:title="@string/action_bar_change_video"
+    <item
+        android:id="@+id/action_bar_change_video"
         android:orderInCategory="100"
-        android:showAsAction="ifRoom|withText" />
-    
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_change_video"/>
+
 </menu>

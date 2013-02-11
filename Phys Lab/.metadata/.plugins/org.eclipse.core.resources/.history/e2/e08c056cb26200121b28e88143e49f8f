@@ -1,0 +1,98 @@
+Beta 1.5.2
+Stable Release, bug fixes. Functionality seems fully added
+
+Beta 1.5.3
+>Fixed time displaying incorrectly (in ms not s)
+>Added new StaticVariable "clip", the movie file
+>(hopefully) fixed axis-text on the graphs. it should scale based on user preference, or at least be 
+	a scalable size 20
+>Video only steps when plotting points. 
+
+Beta 1.5.4
+>Number Picked has become an edittext, allowing the frame to be chosen by a user number input.
+>Added a new Preference (EditText) allowing the frameskip # to be chosen. Default value = 1.
+>Added a new class WritablePoint, a point without an imageview. This is actually writable to file without an I/O Error.
+>OptionsObject was becoming pointless, merged the only useful bits left into the project class
+>Fixed file saving. This time for real. Saving is basically just data structures now, not entire classes.
+
+Beta 1.5.6
+>Fixed graphs 
+	-fixed height and width not scaling properly
+	-graphs now connect the points (maybe add an option to disable this, later)
+>Move frame skip to preferences, replace that with an EditText that displays the frame selected/allows skipping. (Regulate to 30 fps)
+
+Beta 1.5.7
+>Reduced required version from 4.1 to 3.0 (Honeycomb)
+
+Beta 1.5.8
+>Target version is now sdk ver. 17 (latest)
+>Version required restored to sdk 16, until further tests can be done. 
+>Added a main menu with the following options:
+	>New Project
+	>Open Project
+	>Delete project [new addition]
+	>Awesome art which took a grand total of 18 seconds to create
+
+Bugfixes: Fixed a lack of video crashing the program
+	Fixed junk video displays left in from debugging (oops)
+	Removed buttons showing if the mainproject is null on the videoselect activity (shouldnt ever happen now)
+	Stepping now pauses the video
+	Made a basic attempt at fixing the seekbar. Seems fairly decent, but unoptimized [uses more system
+		resources than needed ~230 of videoactivity]
+	Fixed the clip being null when reloading a project
+	Fixed writing to file as .txt
+	Fixed some of the excess updates in VideoActivity (allowing the frameset to actually work)
+	
+Beta 1.5.9
+>Added support for the sd card "/Movies" directory
+>Fixed videos not changing
+>Slightly Improved layout of videoselect
+>Fixed the video not centering on some displays (widescreen), hopefully
+>Refined the graph selection
+	Removed A/T graphs, because they weren't actually doing anything.
+	Added an X/T Graph
+	Added a Y/T Graph
+	Fixed the scale not saving to disk (rotAngle, anyway)
+>Muted music_stream in the video_activity(at least). IE removed sound from videos
+>The video no longer steps when plotting points, but doesnt add a point.
+>Slightly Improved the error message for no videos found.
+>Main menu project creation now allows a project name to be set.
+	
+Beta 1.6.0
+>Removed a dependancy on API16, API Required reduced to 15 (4.0)
+>Putting this here, because it matters: "It could play flash videos using software only decoding and rendering 
+	of the video - but I assume that you don't have any drivers that work that way. There are no
+ 	VirtualBox GAs for Android, and hence no access to accelerated graphics, so the practical 
+ 	outcome is that no, you can't play videos in your Android VM."
+>Removed the edittext functionality that lets the frame be set. This was causing a lot of grief and is probably about to be be fully removed.
+>Added an actionbar for setting scale,origin, plotting points
+>New Art
+
+Bugfixes: Added a few null checks in VideoSelect
+		Probably fixed the issue where the origin could be placed over the scale text box.
+		Removed the center dot of the origin
+		The origin actually uses the right art.
+		Removed the code that let the origin somehow be reset, but didnt seem to work.
+		Increased the scale size and made the image inside... actually scale.
+		Fixed the vertical origin axis showing the horizontal image, and vice-versa/
+		The edittext for the scale will always show when setting the scale left/right side. Removed the mouse interacting with it
+			in some special way.
+		Fixed the scale, by a lot.
+		Hopefully fixed a nullpointer issue in videoselect, again
+	
+Beta 1.6.1
+>Improved Point removal
+	>>Points are now removed by selecting an actionbar option and clicking that point again.
+>Added an option to autosave. If disabled, saving must be done from the graph UI or when exiting -> Main menu.
+
+Bugfixes
+	>Probably fixed a nullpointer crashing issue in the actionbar
+	>Fixed clicks on the actionbar triggering special events.	
+	>Fixed origin images again
+	>fixed reloading the origin and scale not working 
+	>Fixed some warnings
+	>Removed % scaling for the scale height. Flat value of 50 dp (pixels) now.
+	>Scale now starts out without the video bounds, all the time.
+	
+	
+	

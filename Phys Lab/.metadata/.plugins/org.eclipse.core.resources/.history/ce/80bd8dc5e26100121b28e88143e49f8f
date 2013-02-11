@@ -1,0 +1,21 @@
+	Get android support library for older testing and backwards support for V16 APIs.
+	
+	
+	
+	[major-cosmetic] fix graphical assets
+	
+	//[low-Customization] Add a colour selector for several different things.
+	//[minor bug] numbers should only go sci-not if <0.1, >1000
+	
+	//[minor][Fix scale to be based on videobounds, not screen size]
+	
+	//replace save with menu button. autosave it.
+	
+	//[Substancial-Annoyance] preferences in general arent being set on project load. 
+	
+	//TODO: minor bug with the right side of the scale, apparently.
+	//TODO: bitmap being retarded when swapping back to VideoActivity (the scale bitmap)
+	
+	[QoL] scale is too large in some res? is it %?
+
+	[significant useful] Fix the frame-display not updating on video watch.

@@ -1,0 +1,14 @@
+package utils.file;
+
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+
+public class AutosaveThread extends Thread
+{
+	public void run()
+	{
+		while(true)
+		{
+		}		
+	}
+}

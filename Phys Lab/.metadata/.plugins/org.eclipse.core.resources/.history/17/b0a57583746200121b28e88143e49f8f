@@ -1,0 +1,57 @@
+package utils.graphing;
+
+public class Snippet {
+	ImageView image = (ImageView) findViewById(R.id.image_view_scale);
+					Point rightPoint = StaticVariables.mainProject.scaleBoundary.centerOfRightLine();
+					Point leftPoint = StaticVariables.mainProject.scaleBoundary.centerOfLeftLine();
+					Point centerPoint = StaticVariables.mainProject.scaleBoundary.getPerfectCenter();
+				    double lineLength = lineLength(leftPoint.getX(), leftPoint.getY(), x, y);
+					double angle = angleBetweenTwoVectors(leftPoint.getX(), leftPoint.getY(), x, y, rightPoint.x, rightPoint.y);
+					StaticVariables.mainProject.scaleBoundary.totalRotRight += angle;				
+					StaticVariables.mainProject.scaleBoundary.updateLengthRight(lineLength);
+					StaticVariables.mainProject.scaleBoundary.rotateOnLeftCenter(angle);
+					
+					double left = StaticVariables.mainProject.scaleBoundary.points[0].x;
+				    double right = StaticVariables.mainProject.scaleBoundary.points[0].x;
+				    double top = StaticVariables.mainProject.scaleBoundary.points[0].y;
+				    double bottom = StaticVariables.mainProject.scaleBoundary.points[0].y;
+				    
+				    for(int i = 0; i < StaticVariables.mainProject.scaleBoundary.points.length; i++)
+				    {
+				    	Point p = StaticVariables.mainProject.scaleBoundary.points[i];
+				    	
+				    	if(p.x < left)
+				    		left = p.x;
+				    	if(p.x > right)
+				    		right = p.x;
+				    	if(p.y < top)
+				    		top = p.y;
+				    	if(p.y > bottom)
+				    		bottom = p.y;			    	
+				    }
+				    
+				    Matrix matrix = new Matrix();
+					image.setScaleType(ScaleType.MATRIX);
+					matrix.setRotate((float)(StaticVariables.mainProject.scaleBoundary.totalRotRight + StaticVariables.mainProject.scaleBoundary.totalRotLeft), (int)centerPoint.getX(), (int)centerPoint.getY());//, (int)rightPoint.getX(), (int)rightPoint.getY()
+			
+					Bitmap resizedBitmap = getResizedBitmap(StaticVariables.scaleImage, (int)lineLength, StaticVariables.scaleImage.getHeight());
+				    Bitmap img2 = Bitmap.createBitmap(resizedBitmap, 0, 0, resizedBitmap.getWidth(), resizedBitmap.getHeight(), matrix, true);
+				    image.setImageBitmap(img2);
+				    			    
+				    double hypotenuse = Math.sqrt(Math.pow(bottom - top, 2) + Math.pow(right-left, 2));
+				    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams((int)hypotenuse, (int)hypotenuse);
+				    params.leftMargin = (int) (left);
+				    params.topMargin = (int) top;			    
+				    //move the image to where it should be... not (0, 0)
+				    layout.removeView(image);
+				    layout.addView(image, params);			
+				
+	
+	
+				    RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT); 
+				    params1.setMargins(0, 0, (int)(getWidth() * 0.4), getHeight() / 10);
+				    
+		        	EditText scaleText = (EditText)(findViewById(R.id.scale_text_zone));
+		        	scaleText.setLayoutParams(params1);
+}
+

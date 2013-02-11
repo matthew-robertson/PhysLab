@@ -1,0 +1,35 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <!-- Open Graphs -->
+    <item
+        android:id="@+id/action_bar_graph"
+        android:enabled="true"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_graph"
+        android:titleCondensed="@string/action_bar_graph"
+        android:visible="true"/>
+
+    <!-- Main Menu -->
+    <item
+        android:id="@+id/action_bar_main_menu"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_main_menu">
+    </item>
+    
+    <!-- Preferences -->
+    <item
+        android:id="@+id/preferences_item"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_preferences"/>
+
+    <!-- Change Video -->
+    <item
+        android:id="@+id/action_bar_change_video"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_bar_change_video"/>
+
+</menu>

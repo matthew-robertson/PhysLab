@@ -1,0 +1,55 @@
+package utils.preferences;
+
+import gui.activities.R;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.content.DialogInterface;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.widget.EditText;
+
+public class EditTextDialog extends DialogFragment
+{
+	public interface EditTextDialogListener {
+        public void onConfirm(DialogFragment dialog, String value);
+        public void onCancel(DialogFragment dialog, String value);
+    }
+	
+	private String confirmMessage;
+	private String cancelMessage;
+    
+    public EditTextDialog()
+    {
+    	confirmMessage = "Confirm";
+    	cancelMessage = "Cancel";
+    }
+    
+    // Use this instance of the interface to deliver action events
+    EditTextDialogListener mListener;
+    
+    
+	public Dialog onCreateDialog(Bundle savedInstanceState) {
+	    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+	    EditText text = (EditText)(findViewById(R.id.edit_text_project_name));
+	    
+	    // Get the layout inflater
+	    LayoutInflater inflater = getActivity().getLayoutInflater();
+
+	    // Inflate and set the layout for the dialog
+	    // Pass null as the parent view because its going in the dialog layout
+	    builder.setView(inflater.inflate(R.layout.textbox, null))
+	    // Add action buttons
+	           .setPositiveButton(confirmMessage, new DialogInterface.OnClickListener() {
+	               public void onClick(DialogInterface dialog, int id) {
+	            	   mListener.onConfirm(EditTextDialog.this, );
+	               }
+	           })
+	           .setNegativeButton(cancelMessage, new DialogInterface.OnClickListener() {
+	               public void onClick(DialogInterface dialog, int id) {
+	            	   mListener.onCancel(EditTextDialog.this, );
+	               }
+	           });      
+	    return builder.create();
+	}
+}

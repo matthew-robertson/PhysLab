@@ -4,42 +4,32 @@
     android:id="@+id/activity_video_relative_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal" 
-    
-    >
-<!-- 
-     <utils.drawing.DrawablePanel
-	    android:id="@+id/drawable_area_paint_thing" 
-	    android:layout_width="fill_parent"
-	    android:layout_height="wrap_content"
-	    android:layout_marginTop="3dp"
-	    android:layout_marginLeft="0dp"
-	    android:layout_marginRight="0dp"
-	    android:background="#FFFFFF" />
-      -->
-     
-     <NumberPicker
-        android:id="@+id/stepcontrol"
+    android:orientation="horizontal" >
+
+    <EditText
+        android:id="@+id/frame_number"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_toLeftOf="@+id/button1"
-        android:orientation="vertical" />
+        android:inputType="number"
+        android:orientation="vertical"
+        android:text="0"
+        android:visibility="invisible" />
 
     <SeekBar
         android:id="@+id/seekControl"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/stepcontrol"
+        android:layout_above="@+id/frame_number"
         android:layout_alignParentLeft="true" />
 
     <VideoView
         android:id="@+id/track"
-        android:layout_width="wrap_content"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_above="@+id/seekControl"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentTop="true" />
+        android:layout_centerHorizontal="true" />
 
     <Button
         android:id="@+id/button1"
@@ -48,9 +38,9 @@
         android:layout_height="fill_parent"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
-        android:layout_alignTop="@+id/stepcontrol"
+        android:layout_alignTop="@+id/frame_number"
         android:onClick="playButton"
-        android:text="Play/Pause" />
+        android:text="@string/button_1_text" />
 
     <android.gesture.GestureOverlayView
         android:id="@+id/gestureOverlayView1"
@@ -59,83 +49,98 @@
         android:layout_above="@+id/seekControl"
         android:layout_alignParentLeft="true"
         android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true"
-        android:onClick="videoClick" >
-
+        android:layout_alignParentTop="true" >
     </android.gesture.GestureOverlayView>
-     
-     
-     <EditText
+
+    <EditText
         android:id="@+id/scale_text_zone"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" 
- 		android:gravity="top"
- 		android:visibility="invisible" >
- 		
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:inputType="number"
+        android:visibility="invisible" >
+
         <requestFocus />
- 
     </EditText>
-    
-   <ImageView
+
+    <ImageView
         android:id="@+id/image_view_horizontal_axis"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:src="@drawable/horizontal_axis"
+        android:scaleType="fitXY"
+        android:visibility="invisible" />
+
+    <ImageView
+        android:id="@+id/image_view_vertical_axis"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:scaleType="fitXY"
+
+        android:src="@drawable/vertical_axis"
+        android:visibility="invisible" 
+        android:contentDescription="TODO"/>
+
+    <ImageView
+        android:id="@+id/image_view_scale"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-       android:visibility="invisible"
-       
-       android:scaleType="center"
-        android:src="@drawable/shape_axis" />
-        
-    <ImageView
-      android:id="@+id/image_view_vertical_axis"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:visibility="invisible"
- android:scaleType="center"       
-      android:src="@drawable/shape_axis" />
-      
-    <ImageView
-      android:id="@+id/image_view_origin"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
- android:visibility="invisible"
- android:scaleType="center"
-        android:src="@drawable/shape_origin" />
-        
-  
-    <ImageView
-      android:id="@+id/image_view_scale"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
- android:visibility="invisible"
-        android:src="@drawable/scale" />
-    <!-- 
- android:background="@drawable/background" -->    
-    
-    <!--  
-    <ImageView
-      android:id="@+id/image_cursor_scale"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
- android:visibility="invisible"
-        android:src="@drawable/shape_axis" />
-       --> 
-    
-    <!-- 
-	<EditText
-	    android:id="@+id/edit_message"
-	    android:layout_width="match_parent"
-	    android:layout_height="wrap_content"
-	    android:layout_weight="1"
-	    android:hint="@string/edit_message" />
+        android:src="@drawable/scale"
+        android:visibility="invisible" />
 
-	<Button
-	    android:layout_width="wrap_content"
-	    android:layout_height="wrap_content"
-	    android:layout_alignParentLeft="true"
-	    android:layout_below="@+id/edit_message"
-	    android:layout_marginTop="25dp"
-	    android:onClick="sendMessage"
-	    android:text="@string/button_send" />
- 	-->
- 
+    <LinearLayout
+        android:id="@+id/action_bar_layout"
+        android:layout_width="240dp"
+        android:layout_height="90dp"
+        android:layout_centerHorizontal="true"
+        android:orientation="horizontal"
+        android:paddingTop="30dp" >
+
+        <ImageView
+            android:id="@+id/action_bar_scale_left"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:contentDescription="TODO"
+            android:padding="6dp"
+            android:src="@drawable/icon_scale_left_off" />
+
+        <ImageView
+            android:id="@+id/action_bar_scale_right"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:contentDescription="TODO"
+            android:padding="6dp"
+            android:src="@drawable/icon_scale_right_off" />
+        
+        <ImageView
+            android:id="@+id/action_bar_plot_points"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:contentDescription="TODO"
+            android:padding="6dp"
+            android:src="@drawable/icon_plot_points_off" />
+        
+         <ImageView
+            android:id="@+id/action_bar_set_origin"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:contentDescription="TODO"
+            android:padding="6dp"
+            android:src="@drawable/icon_origin_off" />
+         
+         <ImageView
+            android:id="@+id/action_bar_remove_points"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:clickable="true"
+            android:contentDescription="TODO"
+            android:padding="6dp"
+            android:src="@drawable/icon_remove_points_off" />
+        
+        </LinearLayout>
+
 </RelativeLayout>

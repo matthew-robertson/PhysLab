@@ -1,0 +1,22 @@
+package utils.file;
+
+import java.io.Serializable;
+
+import utils.graphing.Point;
+import utils.graphing.WritablePoint;
+
+public class WritableClickBoundary 
+	implements Serializable
+{
+	private static final long serialVersionUID = 1L;
+	public WritablePoint[] points; // Points making up the boundary
+	
+	public void setPoints(Point[] aPoint)
+	{
+		points = new WritablePoint[points.length];
+		for(int i = 0; i < points.length; i++)
+		{
+			points[i] = new WritablePoint(aPoint[i]);
+		}
+	}
+}

@@ -1,0 +1,94 @@
+package utils.preferences;
+
+import gui.activities.VideoActivity;
+import android.R;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.content.DialogInterface;
+import android.os.Bundle;
+
+public class StringSelectDialog extends DialogFragment
+{
+	private String[] listArgs;
+	private int internalFinalIndex;
+	private String message;
+	private String title = "select a value.";
+	
+	// Use this instance of the interface to deliver action events
+	StringSelectDialogListener mListener;
+    
+    /* The activity that creates an instance of this dialog fragment must
+     * implement this interface in order to receive event callbacks.
+     * Each method passes the DialogFragment in case the host needs to query it. */
+    public interface StringSelectDialogListener {
+        public void selectedValue(DialogFragment dialog, String value, boolean storedInternally);        
+    }
+    
+    public StringSelectDialog()
+    {
+    	this.listArgs = new String[0];
+    	this.internalFinalIndex = 0;
+    }
+    
+    public StringSelectDialog(String[] a_str, String title, int intIndex)
+    {
+    	this.listArgs = a_str;
+    	this.internalFinalIndex = intIndex;
+    }
+    
+    public StringSelectDialog(String[] a_str, int intIndex, String message)
+    {
+    	this.listArgs = a_str;
+    	this.internalFinalIndex = intIndex;
+    
+    	this.message = message;
+    }
+    
+    public StringSelectDialog(String[] a_str, int intIndex, String title, String message)
+    {
+    	this.listArgs = a_str;
+    	this.internalFinalIndex = intIndex;
+    
+    	this.message = message;
+    }
+    
+    
+    // Override the Fragment.onAttach() method to instantiate the NoticeDialogListener
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        // Verify that the host activity implements the callback interface
+        try {
+            // Instantiate the NoticeDialogListener so we can send events to the host
+            mListener = (StringSelectDialogListener) activity;
+        } catch (ClassCastException e) {
+            // The activity doesn't implement the interface, throw exception
+            throw new ClassCastException(activity.toString()
+                    + " must implement NoticeDialogListener");
+        }
+    }
+    
+    public Dialog onCreateDialog(Bundle savedInstanceState) 
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setTitle(title)
+               .setItems(listArgs, new DialogInterface.OnClickListener() 
+               {
+                   public void onClick(DialogInterface dialog, int which) 
+                   {
+                	   // The 'which' argument contains the index position of the selected item
+                	   mListener.selectedValue(StringSelectDialog.this, listArgs[which], (which <= internalFinalIndex) ? true : false);
+                   }
+               })
+               .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() 
+               {
+            	   public void onClick(DialogInterface dialog, int id) 
+            	   {
+                   }
+               });
+       	
+        return builder.create();
+    }
+    
+}

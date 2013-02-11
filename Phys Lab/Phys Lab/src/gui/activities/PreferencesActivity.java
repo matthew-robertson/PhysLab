@@ -1,5 +1,7 @@
 package gui.activities;
 
+import global.StaticVariables;
+import utils.file.AutosaveThread;
 import utils.preferences.EnumDialogOptions;
 import utils.preferences.NoticeDialogFragment;
 import utils.preferences.SettingsFragment;
@@ -58,9 +60,16 @@ public class PreferencesActivity extends PreferenceActivity implements
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		SharedPreferences.Editor geted = prefs.edit();
 		geted.putBoolean("preference_default_save_option", StaticVariables.mainProject.preferenceSaveInternally);
-		
+		geted.putBoolean("preference_auto_save_enabled", StaticVariables.mainProject.autosaveEnabled);
 		geted.commit();
 
+		if(StaticVariables.mainProject.autosaveEnabled && StaticVariables.autosaveThread == null)
+		{
+			StaticVariables.autosaveThread = new AutosaveThread(this);
+			StaticVariables.autosaveThread.setDaemon(true);
+			StaticVariables.autosaveThread.start();
+		}
+		
 		/*
 		Preference pref = settingsFragment.findPreference("preference_project_name");
 		
@@ -99,16 +108,40 @@ public class PreferencesActivity extends PreferenceActivity implements
 		}
 	}
 
+	public int parseInt(String str)
+	{
+		try
+		{
+			int i = Integer.parseInt(str);
+			return i;
+		}
+		catch(Exception e)
+		{
+			return 1;
+		}
+	}
+	
 	public void swapBack()
     {
 		SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this); 
 		String str = sp.getString("preferences_measure1","-1");
 		boolean internal = sp.getBoolean("preference_default_save_option", false);		
 		String name = sp.getString("preference_project_name", "0");
+		int frameSkip = parseInt(sp.getString("preference_frame_skip", "0"));
+		boolean save = sp.getBoolean("preference_auto_save_enabled", false);
 		
+		StaticVariables.mainProject.autosaveEnabled = save;
 		StaticVariables.mainProject.preferenceDistanceMeasure = Integer.parseInt(str);
 		StaticVariables.mainProject.preferenceSaveInternally = internal;
 		StaticVariables.mainProject.projectName = name;
+		StaticVariables.mainProject.frameSkip = frameSkip;
+		
+		if(StaticVariables.mainProject.autosaveEnabled && StaticVariables.autosaveThread == null)
+		{
+			StaticVariables.autosaveThread = new AutosaveThread(this);
+			StaticVariables.autosaveThread.setDaemon(true);
+			StaticVariables.autosaveThread.start();
+		}
 		
     	if(activity.equals(VideoActivity.NAME_ACTIVITY_MAIN))
     	{
@@ -143,7 +176,7 @@ public class PreferencesActivity extends PreferenceActivity implements
 				.equals(EnumDialogOptions.DIALOG_DELETE_POINTS_CONFIRM.value)) {
 			try {
 				// Clear all data
-				StaticVariables.mainProject.getOptions().clearAllPoints(null);
+				StaticVariables.mainProject.clearAllPoints(null);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

@@ -1,0 +1,61 @@
+package utils.graphing;
+
+import java.io.Serializable;
+
+import utils.file.WritableBoundary;
+
+
+public class ScaleBoundary
+		implements Serializable
+{    
+	private static final long serialVersionUID = 1L;
+
+	public final Point[] points; // Points making up the boundary   
+    public double totalRotLeft = 0;
+    public double totalRotRight = 0;
+    
+    public ScaleBoundary()
+    {
+    	points = new Point[2];
+    }
+
+    public Boundary(Point[] points)
+    {
+    	this.points = points;
+    }
+    
+    public ScaleBoundary(WritableBoundary bounds) 
+    {
+    	points = new Point[bounds.points.length];
+		
+		for(int i = 0; i < points.length; i++)
+		{
+			points[i] = new Point(bounds.points[i]);
+		}
+		
+		totalRotLeft = bounds.totalRotLeft;
+		totalRotRight = bounds.totalRotRight;
+	}
+    
+    public void setLeftPoint(Point point)
+    {
+    	points[0] = point;
+    }
+    
+    public void setRightPoint(Point point)
+    {
+    	points[1] = point;
+    }
+    
+    public double lineLength(Point point1, Point point2)
+    {
+    	return Math.sqrt(Math.pow((point2.getX() - point1.getX()), 2) + Math.pow((point2.getY() - point1.getY()), 2));
+    }
+        
+    public Point getPerfectCenter()
+    {
+    	Point point1 = points[0];
+    	Point point2 = points[1];
+    	return new Point((point1.x + point2.x) / 2, (point1.y + point2.y) / 2);
+    }
+}

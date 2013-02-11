@@ -1,6 +1,7 @@
 package utils.drawing;
 
-import gui.activities.StaticVariables;
+import global.StaticVariables;
+import gui.activities.R;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -9,6 +10,7 @@ import utils.graphing.Graphable;
 import utils.graphing.GraphableObjectContainer;
 import utils.graphing.Point;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -102,6 +104,11 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 		}
 	}
 	
+	public double roundUp(double d)
+	{
+		return d;//Math.round(d * 10) / 10;
+	}
+	
 	public void onDraw(Canvas canvas) 
 	{
 		try
@@ -169,6 +176,22 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 				h_min = graphable.getVelocityTimeGraph().getMinValueY();
 				points = graphable.getVelocityTimeGraph().getPoints();
 			}
+			else if(graphType == Graphable.GRAPH_TYPE_X_TIME) //X/T
+			{
+				max = graphable.getXTimeGraph().getMaxValue();
+				min = graphable.getXTimeGraph().getMinValue();
+				h_max = graphable.getXTimeGraph().getMaxValueY();
+				h_min = graphable.getXTimeGraph().getMinValueY();
+				points = graphable.getXTimeGraph().getPoints();
+			}
+			else if(graphType == Graphable.GRAPH_TYPE_Y_TIME) //Y/T
+			{
+				max = graphable.getYTimeGraph().getMaxValue();
+				min = graphable.getYTimeGraph().getMinValue();
+				h_max = graphable.getYTimeGraph().getMaxValueY();
+				h_min = graphable.getYTimeGraph().getMinValueY();
+				points = graphable.getYTimeGraph().getPoints();
+			}
 			else //P/T
 			{
 				max = graphable.getPositionTimeGraph().getMaxValue();
@@ -177,6 +200,13 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 				h_min = graphable.getPositionTimeGraph().getMinValueY();
 				points = graphable.getPositionTimeGraph().getPoints();
 			}
+			
+			//
+			if(max == 0.0D)
+				max = 1.0D;
+			if(h_max == 0.0D)
+				h_max = 1.0D;			
+			//
 			
 			if(min >= 0.0D) //Positive X Quadrant only
 			{
@@ -243,8 +273,20 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 				}
 			}
 			
+			max = roundUp(max);
+			h_max = roundUp(h_max);
+			
 			//Draw X axis
 			canvas.drawLine(leftPadding, verticalAxisPadding, this.getWidth() - rightPadding, verticalAxisPadding, paint);
+			
+			//int arb_off = (int) (StaticVariables.mainProject.width / 160);
+			
+			Resources res = getResources();
+			//float fontSize = res.getDimension(R.dimen.font_size);
+			//
+			int scaledSize = res.getDimensionPixelSize(R.dimen.panel_font_size);
+			
+			paint.setTextSize(scaledSize);
 			
 			for(int i = 0; i < 5; i++)
 			{
@@ -252,13 +294,18 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 				
 				Rect textBounds = new Rect();
 				paint.getTextBounds(text, 0, text.length(), textBounds);
+				//textBounds = new Rect(arb_off, 0, leftPadding - arb_off, (int) ((StaticVariables.mainProject.height / 12)));
+				
+				int j = (int)(leftPadding + ((getWidth() - leftPadding - rightPadding) * (i * 0.25D)) - (textBounds.width() * 0.5D));
+				int k = verticalAxisPadding + 2 + textBounds.height() - textBounds.bottom;
+				
 				canvas.drawText(text, 
-						(int)(leftPadding + ((StaticVariables.mainProject.width - leftPadding - rightPadding) * (i * 0.25D)) - (textBounds.width() * 0.5D)), 
-						verticalAxisPadding + 2 + textBounds.height() - textBounds.bottom, 
+						j, 
+						k, 
 						paint);
-				canvas.drawLine(leftPadding + (int)((StaticVariables.mainProject.width - leftPadding - rightPadding) * (i * 0.25D)), 
+				canvas.drawLine(leftPadding + (int)((getWidth() - leftPadding - rightPadding) * (i * 0.25D)), 
 						verticalAxisPadding - 3,
-						leftPadding + (int)((StaticVariables.mainProject.width - leftPadding - rightPadding) * (i * 0.25D)), 
+						leftPadding + (int)((getWidth() - leftPadding - rightPadding) * (i * 0.25D)), 
 						verticalAxisPadding + 3, 
 						paintYellow);
 			}
@@ -274,13 +321,13 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 				paint.getTextBounds(h_text, 0, h_text.length(), h_textBounds);
 				canvas.drawText(h_text,
 						horizontalAxisPadding - h_textBounds.width() - 2, 
-						(int)(topPadding + ((StaticVariables.mainProject.height - topPadding - bottomPadding) * (i * 0.25D)) + h_textBounds.height() - (0.5D * h_textBounds.height()) - h_textBounds.bottom), 
+						(int)(topPadding + ((getHeight() - topPadding - bottomPadding) * (i * 0.25D)) + h_textBounds.height() - (0.5D * h_textBounds.height()) - h_textBounds.bottom), 
 						paint);
 		
 				canvas.drawLine(horizontalAxisPadding - 3, 
-						topPadding + (int)((StaticVariables.mainProject.height - topPadding - bottomPadding) * (i * 0.25D)), 
+						topPadding + (int)((getHeight() - topPadding - bottomPadding) * (i * 0.25D)), 
 						horizontalAxisPadding + 3, 
-						topPadding + (int)((StaticVariables.mainProject.height - topPadding - bottomPadding) * (i * 0.25D)), 
+						topPadding + (int)((getHeight() - topPadding - bottomPadding) * (i * 0.25D)), 
 						paintYellow);
 			}
 			
@@ -295,6 +342,9 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 			}
 			*/
 			
+			double oldX = 0;
+			double oldY = 0;
+			
 			//Graph the points based on the graph
 			for(int i = 0; i < points.length; i++)
 			{
@@ -303,41 +353,41 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 				
 				if(min >= 0)
 				{
-					x = (leftPadding + ((StaticVariables.mainProject.width - leftPadding - rightPadding) * (points[i].getX() / horizontalGraphUnitSize)));
+					x = (leftPadding + ((getWidth() - leftPadding - rightPadding) * (points[i].getX() / horizontalGraphUnitSize)));
 				}
 				else if(max <= 0)
 				{
-					x = (leftPadding + ((StaticVariables.mainProject.width - leftPadding - rightPadding) * ((points[i].getX() - min) / horizontalGraphUnitSize)));
+					x = (leftPadding + ((getWidth() - leftPadding - rightPadding) * ((points[i].getX() - min) / horizontalGraphUnitSize)));
 				}
 				else
 				{
 					if(points[i].getX() < 0)
 					{
-						x = (leftPadding + ((StaticVariables.mainProject.width - leftPadding - rightPadding) * ((points[i].getX() - min) / horizontalGraphUnitSize)));
+						x = (leftPadding + ((getWidth() - leftPadding - rightPadding) * ((points[i].getX() - min) / horizontalGraphUnitSize)));
 					}
 					else
 					{
-						x = (leftPadding + ((StaticVariables.mainProject.width - leftPadding - rightPadding) * ((points[i].getX() + (0.5 * horizontalGraphUnitSize)) / horizontalGraphUnitSize)));
+						x = (leftPadding + ((getWidth() - leftPadding - rightPadding) * ((points[i].getX() + (0.5 * horizontalGraphUnitSize)) / horizontalGraphUnitSize)));
 					}
 				}
 				
 				if(h_min >= 0)
 				{
-					y = (topPadding + ((StaticVariables.mainProject.height - topPadding - bottomPadding) * (1 - (points[i].getY() / verticalGraphUnitSize))));
+					y = (topPadding + ((getHeight() - topPadding - bottomPadding) * (1 - (points[i].getY() / verticalGraphUnitSize))));
 				}
 				else if(h_max <= 0)
 				{
-					y = (topPadding + ((StaticVariables.mainProject.height - topPadding - bottomPadding) * ((h_max - points[i].getY()) / verticalGraphUnitSize)));
+					y = (topPadding + ((getHeight() - topPadding - bottomPadding) * ((h_max - points[i].getY()) / verticalGraphUnitSize)));
 				}
 				else
 				{
 					if(points[i].getY() < 0)
 					{
-						y = (topPadding + ((StaticVariables.mainProject.height - topPadding - bottomPadding) * (Math.abs(points[i].getY()) + (0.5 * verticalGraphUnitSize)) / verticalGraphUnitSize));
+						y = (topPadding + ((getHeight() - topPadding - bottomPadding) * (Math.abs(points[i].getY()) + (0.5 * verticalGraphUnitSize)) / verticalGraphUnitSize));
 					}
 					else
 					{
-						y = (topPadding + ((StaticVariables.mainProject.height - topPadding - bottomPadding) * ((h_max - points[i].getY()) / verticalGraphUnitSize)));
+						y = (topPadding + ((getHeight() - topPadding - bottomPadding) * ((h_max - points[i].getY()) / verticalGraphUnitSize)));
 					}
 				}
 				
@@ -354,6 +404,14 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 						(int)y, 
 						pointRadius, 
 						paintYellow);
+				
+				if(i > 0)
+				{
+					canvas.drawLine((int)oldX, (int)oldY, (int)x, (int)y, paintYellow);
+				}
+				
+				oldX = x;
+				oldY = y;
 			}
 		}
 		catch(Exception e)

@@ -1,0 +1,12 @@
+package utils.file;
+
+public class AutosaveThread extends Thread
+{
+	public void run()
+	{
+		while(true)
+		{
+			
+		}		
+	}
+}
